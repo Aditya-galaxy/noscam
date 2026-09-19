@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Messages</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 16px/1.5 -apple-system, "Segoe UI", Roboto, sans-serif;
+         background: #e9e2db; display: flex; justify-content: center; }
+  .phone { width: min(520px, 100%); min-height: 100vh; background: #efeae2;
+           display: flex; flex-direction: column; }
+  header { background: #075e54; color: #fff; padding: 14px 18px; display: flex;
+           align-items: center; gap: 12px; }
+  .avatar { width: 38px; height: 38px; border-radius: 50%; background: #cfd8dc;
+            display: grid; place-items: center; color: #37474f; font-weight: 700; }
+  .who { font-weight: 600; }
+  .sub { font-size: 13px; opacity: .8; }
+  .thread { flex: 1; padding: 18px; display: flex; flex-direction: column; gap: 12px; }
+  .msg { max-width: 82%; padding: 10px 14px; border-radius: 12px; background: #fff;
+         box-shadow: 0 1px 1px rgba(0,0,0,.12); }
+  .msg.me { align-self: flex-end; background: #d9fdd3; }
+  .time { display: block; font-size: 11px; color: #667781; text-align: right; margin-top: 4px; }
+  a { color: #027eb5; word-break: break-all; }
+  .note { padding: 14px 18px; background: #fff8e1; border-top: 1px solid #ffe082;
+          font-size: 13px; color: #6d4c41; }
+</style>
+</head>
+<body>
+<div class="phone">
+  <header>
+    <div class="avatar">SB</div>
+    <div>
+      <div class="who">SBI Bank Security</div>
+      <div class="sub">online</div>
+    </div>
+  </header>
+
+  <div class="thread">
+    <div class="msg">
+      Dear Customer, unusual activity was detected on your account ending 4417.
+      <span class="time">10:42</span>
+    </div>
+    <div class="msg">
+      Your account will be <b>frozen in 30 minutes</b> unless you move your balance to the
+      RBI-verified safe account linked to your PAN.
+      <span class="time">10:42</span>
+    </div>
+    <div class="msg">
+      Complete the transfer here:<br>
+      <a id="payment-link" href="http://localhost:8791/transfer.html">
+        http://localhost:8791/transfer.html</a>
+      <span class="time">10:43</span>
+    </div>
+    <div class="msg">
+      If the page does not open, install our support tool:<br>
+      <a id="apk-link" href="http://localhost:8791/downloads/sbi-support.apk">
+        sbi-support.apk</a>
+      <span class="time">10:44</span>
+    </div>
+    <div class="msg me">
+      Is this really the bank?
+      <span class="time">10:45</span>
+    </div>
+    <div class="msg">
+      Yes sir. Do not discuss this with anyone, it is a confidential RBI investigation.
+      Complete within 30 minutes.
+      <span class="time">10:45</span>
+    </div>
+  </div>
+
+  <div class="note">
+    <b>Demo.</b> This is a stand-in for a messaging app, used to show how NoScam
+    reacts to a link that arrives in a message. Nothing here is real and no message
+    is sent anywhere.
+  </div>
+</div>
+</body>
+</html>
