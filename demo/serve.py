@@ -35,8 +35,18 @@ class Quiet(http.server.SimpleHTTPRequestHandler):
 def serve(port: int, directory: str) -> None:
     handler = functools.partial(Quiet, directory=directory)
     socketserver.TCPServer.allow_reuse_address = True
-    with socketserver.TCPServer(("127.0.0.1", port), handler) as httpd:
-        httpd.serve_forever()
+    try:
+        with socketserver.TCPServer(("127.0.0.1", port), handler) as httpd:
+            httpd.serve_forever()
+    except OSError:
+        # Almost always a second copy already running. That is an ordinary
+        # thing to do by accident, and the answer is one sentence — not the
+        # twenty lines of traceback a thread prints when it dies.
+        # One call, not two: three of these run on their own threads, and two
+        # prints each interleave into something nobody can read.
+        name = os.path.basename(directory)
+        print(f"  Port {port} is in use, so the {name} page did not start — "
+              f"another copy of NoScam is probably already running.")
 
 
 def main() -> None:

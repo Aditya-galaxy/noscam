@@ -7,6 +7,14 @@
 <meta name="description" content="NoScam holds payments, one-time codes, gift cards and installs when a message is what asked for them. Free, runs on your own computer, nothing leaves the device.">
 <meta property="og:title" content="NoScam — stop a message from moving your money">
 <meta property="og:description" content="The scams that take the most money never break any encryption. They get you to authorise it. NoScam refuses to let a message authorise anything you can't undo.">
+<!-- Absolute, because the card is built by a scraper that has no page to be
+     relative to. The picture in it is a real frame from the demo. -->
+<meta property="og:image" content="https://aditya-galaxy.github.io/noscam/thumbnail.png">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="720">
+<meta property="og:url" content="https://aditya-galaxy.github.io/noscam/">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
 <style>
   :root {
     --fg: #000; --muted: #666; --faint: #8a8a8a; --line: #eaeaea; --wash: #fafafa;
@@ -120,9 +128,13 @@
   <p class="note">Three minutes, showing the real thing running.</p>
 
   <div class="cta">
-    <a class="primary" href="https://github.com/Aditya-galaxy/noscam/archive/refs/heads/main.zip">Download NoScam</a>
+    <a class="primary" href="https://github.com/Aditya-galaxy/noscam/releases/latest/download/noscam.zip">Download NoScam</a>
     <a class="secondary" href="#install">Installation steps</a>
   </div>
+  <p class="note">A 100&nbsp;KB download: the software itself, without the demo film,
+    the test suite or the write-ups. Needs Python&nbsp;3.11 or newer.
+    <a href="https://github.com/Aditya-galaxy/noscam">All of it is on GitHub</a>
+    if you would rather read first.</p>
   <p class="note">Free and open source. Runs entirely on your own computer — no account,
     no subscription, no server.</p>
 
@@ -254,7 +266,7 @@
   <ol class="steps">
     <li>
       <h3>Download and start it</h3>
-      <p><a href="https://github.com/Aditya-galaxy/noscam/archive/refs/heads/main.zip">Download
+      <p><a href="https://github.com/Aditya-galaxy/noscam/releases/latest/download/noscam.zip">Download
         the ZIP</a> and unzip it, or clone the repository. Then, in a terminal:</p>
       <pre><code>cd noscam
 python3 -m pip install -r requirements.txt
@@ -362,7 +374,7 @@ python3 noscam.py</code></pre>
 
   <h2>Get it</h2>
   <div class="cta">
-    <a class="primary" href="https://github.com/Aditya-galaxy/noscam/archive/refs/heads/main.zip">Download NoScam</a>
+    <a class="primary" href="https://github.com/Aditya-galaxy/noscam/releases/latest/download/noscam.zip">Download NoScam</a>
     <a class="secondary" href="https://github.com/Aditya-galaxy/noscam">Source code</a>
     <a class="secondary" href="https://github.com/Aditya-galaxy/noscam/blob/main/LIMITATIONS.md">What it can’t do</a>
   </div>

@@ -1,0 +1,41 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>NoScam — thumbnail</title>
+<!--
+  The tile a judge sees before they decide to watch anything.
+
+  Two rules it is built to: it has to survive being shrunk to the width of a
+  thumb, and it must not promise something the film does not show. So the type
+  is enormous and there is very little of it, and the picture beside it is the
+  actual product frame from the demo — not an illustration of one.
+-->
+<style>
+  html, body { margin: 0; width: 1280px; height: 720px; }
+  body { background: #0b0b0d; color: #fff; display: grid;
+         grid-template-columns: 1fr 1fr; align-items: center;
+         font: 400 20px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+         overflow: hidden; }
+
+  .words { padding: 0 0 0 78px; }
+  .mark { font-size: 26px; font-weight: 600; letter-spacing: -.02em; color: #fff;
+          display: flex; align-items: center; gap: 12px; margin-bottom: 34px; }
+  .mark span { width: 13px; height: 13px; border-radius: 50%; background: #fff; }
+
+  h1 { font-size: 78px; line-height: 1.02; letter-spacing: -.045em; font-weight: 650;
+       margin: 0 0 30px; }
+  /* The verb is the whole argument, so it is the thing that is not white. */
+  h1 em { font-style: normal; color: #9b9ba3; }
+
+  p { font-size: 25px; color: #b4b4bd; margin: 0; max-width: 20ch; }
+
+  /* The real frame, held at an angle so it reads as a screen rather than as a
+     rectangle of grey at thumbnail size. */
+  .shot { justify-self: center; width: 620px; border-radius: 14px;
+          box-shadow: 0 40px 90px rgba(0,0,0,.65); transform: rotate(-3deg) scale(1.06); }
+</style>
+<div class="words">
+  <div class="mark"><span></span>NoScam</div>
+  <h1>A message <em>cannot</em> authorise your money.</h1>
+  <p>The pause everyone tells you to take — enforced by software.</p>
+</div>
+<img class="shot" src="frames/03-held.png" alt="A payment held, with the reason in plain words">
