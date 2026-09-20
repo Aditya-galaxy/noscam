@@ -87,7 +87,7 @@ one channel.
 python3 eval/score.py
 ```
 
-Read the scorecard, including the two delayed cases. Then say what it does not
+Read the scorecard, including the four cases it slowed down. Then say what it does not
 do: no OS-level protection on a phone, no help once a machine is compromised,
 and an override that a determined person can always press.
 
