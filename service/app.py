@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import secrets
 from datetime import datetime
 from typing import Any, Optional
 
@@ -63,10 +64,62 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"],
 # still refuses; it simply stops adding to the queue.
 MAX_PENDING_HOLDS = 25
 
+# Loopback-only is the default, and it is what makes the Origin check above
+# sufficient: nothing outside this machine can reach the service at all. But the
+# second device — the whole point of the product — is a *different* device, so
+# the phone has to be able to connect, which means listening on the network.
+#
+# The moment it does, "a page cannot forge Origin" stops being enough, because
+# anything else on that Wi-Fi is a legitimate client as far as the browser is
+# concerned. So in LAN mode every request from off this machine carries a token
+# that is printed once, at startup, and reaches the phone in the link it opens.
+LAN_MODE = os.environ.get("NOSCAM_LAN") == "1"
+LOOPBACK = {"127.0.0.1", "::1", "localhost", "testclient"}
+
+
+def _token_path() -> str:
+    return os.path.join(DATA_DIR, "token")
+
+
+def household_token() -> str:
+    """Stable for the life of the household: printed at startup, carried in the
+    link the phone opens, then kept by the phone."""
+    path = _token_path()
+    if os.path.exists(path):
+        with open(path, encoding="utf-8") as fh:
+            existing = fh.read().strip()
+        if existing:
+            return existing
+    token = secrets.token_urlsafe(18)
+    os.makedirs(DATA_DIR, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as fh:
+        fh.write(token)
+    os.chmod(path, 0o600)
+    return token
+
+
+def _off_machine(request: Request) -> bool:
+    client = request.client.host if request.client else ""
+    return LAN_MODE and client not in LOOPBACK
+
+
+def require_household_token(request: Request) -> None:
+    """Every request from another device proves it belongs to this household."""
+    if not _off_machine(request):
+        return
+    supplied = (request.headers.get("x-noscam-token")
+                or request.query_params.get("t") or "")
+    if not secrets.compare_digest(supplied, household_token()):
+        raise HTTPException(
+            status_code=401,
+            detail="this device has not been paired with the household",
+        )
+
 EXTENSION_SCHEMES = ("chrome-extension://", "moz-extension://", "safari-web-extension://")
 
 
 def require_trusted_origin(request: Request) -> None:
+    require_household_token(request)
     origin = request.headers.get("origin")
     if not origin:
         return                                    # a local CLI, not a web page
@@ -324,7 +377,8 @@ class HoldDecisionIn(BaseModel):
 
 
 @app.get("/holds")
-def list_holds(status: str = "pending") -> list[dict[str, Any]]:
+def list_holds(status: str = "pending",
+               _: None = Depends(require_household_token)) -> list[dict[str, Any]]:
     now = utcnow()
     holds = [h for h in store.read().holds.values()
              if status == "all" or h.summary(now)["status"] == status]
@@ -332,7 +386,8 @@ def list_holds(status: str = "pending") -> list[dict[str, Any]]:
 
 
 @app.get("/holds/{hold_id}")
-def get_hold(hold_id: str) -> dict[str, Any]:
+def get_hold(hold_id: str,
+             _: None = Depends(require_household_token)) -> dict[str, Any]:
     hold = store.read().holds.get(hold_id)
     if hold is None:
         raise HTTPException(status_code=404, detail="no such hold")
@@ -429,7 +484,8 @@ class LinkIn(BaseModel):
 
 
 @app.post("/links/check")
-def links_check(payload: LinkIn) -> dict[str, Any]:
+def links_check(payload: LinkIn,
+                _: None = Depends(require_household_token)) -> dict[str, Any]:
     household = store.read().household
     try:
         verdict = check_url(payload.url, blocklist=household.reported_hosts,

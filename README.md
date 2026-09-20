@@ -83,6 +83,10 @@ opens the first page. Then:
 
 - **http://localhost:8790** — the scam. Click the payment link, press Transfer.
 - **http://127.0.0.1:8787/app/** — the phone: approvals, link checks, limits.
+  For a *real* phone on the same Wi-Fi, start with `python3 noscam.py --lan` and
+  open the link it prints; it carries a one-time token, and from then on that
+  phone is the household's second device. (Loopback-only is the default because
+  listening on a network when nobody asked is the wrong default for this.)
 - **http://localhost:8791** — their own bank, to see ordinary payments pass.
 
 The demo pages load the extension's content script directly, so the gate works

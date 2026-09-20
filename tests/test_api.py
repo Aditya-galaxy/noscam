@@ -401,3 +401,52 @@ def test_a_web_page_cannot_forget_a_payee_for_you(api) -> None:
     client.post("/household/payees", json={"payees": ["Landlord"]})
     assert client.delete("/household/payees/Landlord",
                          headers=SCAM_PAGE).status_code == 403
+
+
+# --------------------------------------------------------------------------- #
+# The second device has to be able to reach the service — and only the right one
+# --------------------------------------------------------------------------- #
+
+@pytest.fixture
+def lan(api, monkeypatch):
+    """LAN mode, as a phone on the same Wi-Fi would see it."""
+    client, module = api
+    monkeypatch.setattr(module, "LAN_MODE", True)
+    monkeypatch.setattr(module, "LOOPBACK", set())      # pretend this client is elsewhere
+    return client, module
+
+
+def test_another_device_on_the_wifi_cannot_answer_without_the_token(lan) -> None:
+    """Origin proves a page is not lying about itself; it proves nothing about
+    which device is asking. On a shared network that is the whole question."""
+    client, _ = lan
+    assert client.get("/holds").status_code == 401
+    assert client.get("/household").status_code == 401
+    assert client.post("/links/check", json={"url": "https://x.example", "fetch": False}
+                       ).status_code == 401
+
+
+def test_the_paired_phone_works(lan) -> None:
+    client, module = lan
+    headers = {"X-NoScam-Token": module.household_token()}
+    assert client.get("/holds", headers=headers).status_code == 200
+    assert client.get("/household", headers=headers).status_code == 200
+
+
+def test_a_wrong_token_is_refused(lan) -> None:
+    client, _ = lan
+    assert client.get("/holds", headers={"X-NoScam-Token": "not-the-token"}
+                      ).status_code == 401
+
+
+def test_the_token_also_travels_in_the_link_the_phone_opens(lan) -> None:
+    """It arrives once, in the URL, and the app keeps it from then on."""
+    client, module = lan
+    assert client.get(f"/holds?t={module.household_token()}").status_code == 200
+
+
+def test_loopback_needs_no_token_so_the_extension_is_unaffected(api) -> None:
+    """The extension talks to 127.0.0.1 from this machine. Making it carry a
+    token would add a pairing step that protects nothing."""
+    client, _ = api
+    assert client.get("/holds").status_code == 200

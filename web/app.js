@@ -9,10 +9,24 @@
 // what a web app may do: it cannot see your SMS or stop an install, but it can
 // tell you what a link really is before you tap it.
 
+// The token arrives once, in the link the phone opens, and is kept from then on.
+// It is what distinguishes this household's phone from everything else on the
+// same Wi-Fi, which the browser cannot tell apart on its own.
+const token = (() => {
+  const fromLink = new URLSearchParams(location.search).get("t");
+  if (fromLink) {
+    try { localStorage.setItem("noscam:token", fromLink); } catch { }
+    history.replaceState(null, "", location.pathname);   // keep it out of the address bar
+    return fromLink;
+  }
+  try { return localStorage.getItem("noscam:token") || ""; } catch { return ""; }
+})();
+
 const api = (path, body, method) =>
   fetch(path.startsWith("http") ? path : `..${path}`, {
     method: method || (body ? "POST" : "GET"),
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json",
+               ...(token ? { "X-NoScam-Token": token } : {}) },
     body: body ? JSON.stringify(body) : undefined,
   }).then((response) => response.json());
 

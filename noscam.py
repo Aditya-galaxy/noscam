@@ -31,12 +31,13 @@ BANNER = """
 """
 
 
-def start_gate(port: int) -> threading.Thread:
+def start_gate(port: int, lan: bool = False) -> threading.Thread:
     import uvicorn
 
     from service.app import app
 
-    config = uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning")
+    config = uvicorn.Config(app, host="0.0.0.0" if lan else "127.0.0.1",  # noqa: S104
+                            port=port, log_level="warning")
     server = uvicorn.Server(config)
     thread = threading.Thread(target=server.run, daemon=True)
     thread.start()
@@ -48,6 +49,19 @@ def start_demo_sites() -> None:
 
     for port, directory in SITES.items():
         threading.Thread(target=serve, args=(port, directory), daemon=True).start()
+
+
+def lan_address() -> str:
+    """This machine's address on the local network, found by asking the routing
+    table rather than by guessing at interface names."""
+    import socket
+
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as probe:
+        try:
+            probe.connect(("10.255.255.255", 1))   # no packet is sent
+            return probe.getsockname()[0]
+        except OSError:
+            return "127.0.0.1"
 
 
 def wait_for(port: int, seconds: float = 10.0) -> bool:
@@ -86,15 +100,35 @@ def main() -> int:
     parser.add_argument("--no-demo", action="store_true",
                         help="skip the stand-in messenger and bank")
     parser.add_argument("--no-open", action="store_true", help="don't open a browser")
+    parser.add_argument("--lan", action="store_true",
+                        help="let a phone on the same Wi-Fi reach this. Off by default: "
+                             "loopback-only is the safer thing to be when nobody asked.")
     args = parser.parse_args()
 
     print(BANNER)
-    start_gate(args.port)
+    if args.lan:
+        # The service must be told before it starts: from that moment, anything
+        # arriving from another device has to prove it belongs here.
+        os.environ["NOSCAM_LAN"] = "1"
+    start_gate(args.port, lan=args.lan)
     if not wait_for(args.port):
         print(f"  The gate could not start on port {args.port}. Is something else using it?")
         return 1
     print(f"  gate            http://127.0.0.1:{args.port}")
-    print(f"  phone / tablet  http://127.0.0.1:{args.port}/app/")
+    if args.lan:
+        from service.app import household_token
+
+        print(f"  phone / tablet  http://{lan_address()}:{args.port}"
+              f"/app/?t={household_token()}")
+        print("                  ^ open this on the phone, once. It is the only "
+              "thing that lets another device answer.")
+        print("                  If the phone cannot reach it, macOS is blocking "
+              "incoming\n                  connections for Python: System Settings → "
+              "Network →\n                  Firewall → Options → allow it. Windows asks "
+              "the first time.")
+    else:
+        print(f"  phone / tablet  http://127.0.0.1:{args.port}/app/")
+        print("                  (a real phone needs --lan)")
 
     if not args.no_demo:
         start_demo_sites()

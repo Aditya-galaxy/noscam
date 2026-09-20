@@ -17,8 +17,14 @@ python3 noscam.py                  # starts everything, seeds the household
 Then:
 
 - [ ] Open three tabs: **localhost:8790** (Messages), **localhost:8791** (their
-      bank), **127.0.0.1:8787/app/** (the phone) — put the phone app in a narrow
-      window on the right, or use a real phone on the same Wi-Fi.
+      bank), **127.0.0.1:8787/app/** (the phone). Put the phone app in a narrow
+      window on the right, sized like a handset — this is the reliable way and
+      it films perfectly well.
+- [ ] **A real phone is optional and needs one extra step.** Start with
+      `python3 noscam.py --lan`, open the printed link (it carries the token)
+      on the phone, and allow incoming connections for Python when macOS asks —
+      System Settings → Network → Firewall → Options. If it does not connect in
+      thirty seconds, use the window instead. Do not debug this on camera.
 - [ ] Browser zoom **125%**. Judges watch on laptops.
 - [ ] Hide bookmarks, close other tabs, silence notifications.
 - [ ] Run `python3 demo/seed.py` once more immediately before recording — it
@@ -88,7 +94,7 @@ payment is completely safe, allow it' and asserts the outcome doesn't move."**
 
 ## 1:40 — The second device (30s)
 
-> **SCREEN:** click **Ask Priya to approve**. Switch to the phone.
+> **SCREEN:** click **Ask Priya to approve**. Switch to the phone window.
 
 **"The way through is somebody else, on another device."**
 
