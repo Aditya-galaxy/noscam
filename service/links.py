@@ -325,6 +325,25 @@ def check_upi(raw: str) -> LinkVerdict:
     amount = params.get("am", "").strip()
     note = params.get("tn", "")
 
+    # A mandate is a standing instruction, not a payment: the number on screen
+    # is per-debit, and the real question is how many debits it authorises.
+    recurrence = (params.get("recur") or params.get("recurrence") or "").lower()
+    is_mandate = ("mandate" in raw.lower() or bool(recurrence)
+                  or "validityend" in {k.lower() for k in params})
+    if is_mandate:
+        every = recurrence or "as presented"
+        until = params.get("validityend") or params.get("validityEnd") or "until cancelled"
+        mandate_signals = [Signal(
+            "upi_is_a_mandate", "high",
+            (f"This is not a one-off payment. Approving it lets {payee or 'them'} take "
+             f"{'₹' + amount if amount else 'money'} {every}, until {until}."))]
+        if not amount:
+            mandate_signals.append(Signal(
+                "upi_open_amount", "high",
+                "The amount is blank, so they choose how much to take each time."))
+        return LinkVerdict(url=raw.strip(), final_url=raw.strip(), kind="upi",
+                           verdict="dangerous", signals=mandate_signals, chain=[raw.strip()])
+
     signals = [Signal(
         "upi_sends_money", "medium",
         (f"Approving this sends {'₹' + amount if amount else 'money'} from your account"

@@ -26,7 +26,7 @@ arrived through a message authorise something irreversible.**
 | | |
 |---|---|
 | **Limits what can happen** | Per-payment and daily caps, a cooling period for first-time payees, remote-control software refused outright. Set once by whoever is calmest. |
-| **Stops the moment of loss** | Every way money and access actually leave: a transfer, a one-time code, a password, an install, **gift cards**, **crypto**, a **UPI collect request**, and identity numbers — each checked against *how you got there*. |
+| **Stops the moment of loss** | Every way money and access actually leave: a transfer, a one-time code, a password, an install, **gift cards**, **crypto**, a **UPI collect request**, an **AutoPay mandate**, and identity numbers — each checked against *how you got there*. |
 | **Catches the fake page as it opens** | When a message sent you somewhere whose address gives it away, before anything is typed. |
 | **Checks links, with reasons** | Lookalike domains, brand names that aren't in the domain, punycode, shorteners that land somewhere else, pages asking for passwords, installers — and `upi://` requests, decoded to say which way the money goes. |
 
@@ -103,7 +103,10 @@ happened" survives the argument afterwards.
   ordered by severity, each carrying a sentence the person can check against
   their own memory: *"you arrived here from WhatsApp 40 seconds ago."*
 - **`service/links.py`** — link signals, each with a named reason, including
-  `upi://` requests decoded into which way the money moves. That is the whole of
+  `upi://` requests decoded into which way the money moves — and whether it
+  moves *once*. An AutoPay mandate shows ₹99 on screen while authorising ₹99
+  **daily** until cancelled, so the year's total is spelled out; NPCI tightened
+  mandate rules in 2026 for exactly this reason. That is the whole of
   the collect-request scam: the victim is told a refund is arriving, and
   approving it with their own PIN sends money out. UPI has no flow in which
   receiving needs your approval.
@@ -174,7 +177,7 @@ it at the person rather than the agent, and measuring the friction it costs.
 ## Tests
 
 ```bash
-python3 -m pytest -q      # 82: the gate's truth table, approval replay,
+python3 -m pytest -q      # 85: the gate's truth table, approval replay,
                           # link signals, SSRF refusals, audit tampering,
                           # and the model's leash
 python3 eval/score.py     # the two-axis scorecard

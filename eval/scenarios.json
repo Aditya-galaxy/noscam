@@ -432,6 +432,54 @@
         "origin": "typed",
         "seconds_ago": 15
       }
+    },
+    {
+      "name": "AutoPay mandate disguised as a KYC re-verification",
+      "kind": "scam",
+      "source": "NPCI tightened mandate rules in 2026 for exactly this",
+      "action": {
+        "type": "upi_mandate_approval",
+        "host": "kyc-verify.example",
+        "amount": 99,
+        "payee": "KYC Verify Services",
+        "recurrence": "daily"
+      },
+      "provenance": {
+        "origin": "link",
+        "source_host": "web.whatsapp.com",
+        "seconds_ago": 30
+      }
+    },
+    {
+      "name": "'Claim your prize' mandate with a blank amount",
+      "kind": "scam",
+      "action": {
+        "type": "upi_mandate_approval",
+        "host": "prize-claim.example",
+        "payee": "Lucky Draw Ltd",
+        "recurrence": "as presented"
+      },
+      "provenance": {
+        "origin": "link",
+        "source_host": "web.telegram.org",
+        "seconds_ago": 60
+      }
+    },
+    {
+      "name": "Subscribing to a streaming service yourself",
+      "kind": "ordinary",
+      "source": "A standing instruction is never waved through on size — ₹99 a month is ₹1,188 a year",
+      "action": {
+        "type": "upi_mandate_approval",
+        "host": "streaming.example",
+        "amount": 99,
+        "payee": "A streaming service",
+        "recurrence": "monthly"
+      },
+      "provenance": {
+        "origin": "typed",
+        "seconds_ago": 40
+      }
     }
   ]
 }

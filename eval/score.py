@@ -48,6 +48,7 @@ def run_one(scenario: dict) -> tuple[str, str]:
         type=ActionType(payload["type"]), host=payload.get("host", ""),
         amount=payload.get("amount"), payee=payload.get("payee"),
         file_name=payload.get("file_name"), data_kind=payload.get("data_kind"),
+        recurrence=payload.get("recurrence"),
     )
     decision = decide(action, provenance, LIMITS, now=now,
                       spent_today=scenario.get("spent_today", 0.0),

@@ -57,6 +57,7 @@ class ActionIn(BaseModel):
     payee: Optional[str] = None
     file_name: Optional[str] = None
     data_kind: Optional[str] = None
+    recurrence: Optional[str] = None
 
 
 class CheckIn(BaseModel):
@@ -82,7 +83,7 @@ def fingerprint(action: Action) -> str:
     raw = "|".join([
         action.type.value, normalize_host(action.host), f"{action.amount or 0:.2f}",
         (action.payee or "").strip().lower(), (action.file_name or "").lower(),
-        (action.data_kind or "").lower(),
+        (action.data_kind or "").lower(), (action.recurrence or "").lower(),
     ])
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:32]
 
@@ -101,7 +102,7 @@ def _to_action(payload: ActionIn, household) -> Action:
         raise HTTPException(status_code=400, detail=f"unknown action type '{payload.type}'")
     return Action(type=action_type, host=payload.host, amount=payload.amount,
                   payee=payload.payee, file_name=payload.file_name,
-                  data_kind=payload.data_kind)
+                  data_kind=payload.data_kind, recurrence=payload.recurrence)
 
 
 def _to_provenance(payload: ProvenanceIn) -> Provenance:

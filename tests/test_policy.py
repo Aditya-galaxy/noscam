@@ -371,3 +371,43 @@ def test_a_collect_request_you_were_expecting_still_gets_a_second_look() -> None
     )
     assert decision.disposition is Disposition.NEEDS_APPROVAL
     assert decision.reason_code == "upi_collect_request"
+
+
+# --------------------------------------------------------------------------- #
+# Standing instructions: UPI AutoPay and e-mandates
+# --------------------------------------------------------------------------- #
+
+def test_a_mandate_pushed_by_a_message_is_refused_and_the_total_is_spelled_out() -> None:
+    """The deception is arithmetic: ₹99 on screen, ₹36,135 a year authorised."""
+    decision = decide(
+        Action(type=ActionType.UPI_MANDATE_APPROVAL, host="kyc-verify.example",
+               amount=99, payee="KYC Verify Services", recurrence="daily"),
+        from_message(), LIMITS, now=NOW,
+    )
+    assert decision.disposition is Disposition.BLOCKED
+    assert decision.reason_code == "mandate_after_message"
+    assert "₹36,135 a year" in decision.detail
+    assert "never needs a standing instruction" in decision.detail
+
+
+def test_a_mandate_you_set_up_yourself_is_never_waved_through_on_size() -> None:
+    """₹99 is well inside every limit. It is the repetition that matters."""
+    decision = decide(
+        Action(type=ActionType.UPI_MANDATE_APPROVAL, host="streaming.example",
+               amount=99, payee="A streaming service", recurrence="monthly"),
+        typed_myself(), LIMITS, now=NOW,
+    )
+    assert decision.disposition is Disposition.NEEDS_APPROVAL
+    assert decision.reason_code == "mandate_needs_second_pair_of_eyes"
+    assert "₹1,188 a year" in decision.detail
+
+
+def test_an_unspecified_recurrence_is_costed_at_the_daily_ceiling() -> None:
+    """'As presented' means the merchant chooses, so the honest figure is the
+    worst one rather than a comforting guess."""
+    decision = decide(
+        Action(type=ActionType.UPI_MANDATE_APPROVAL, amount=500,
+               payee="Someone", recurrence=None),
+        typed_myself(), LIMITS, now=NOW,
+    )
+    assert "₹182,500 a year" in decision.detail

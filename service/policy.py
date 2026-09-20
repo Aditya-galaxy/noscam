@@ -51,6 +51,7 @@ class ActionType(str, Enum):
     GIFT_CARD_PURCHASE = "gift_card_purchase"
     CRYPTO_TRANSFER = "crypto_transfer"
     UPI_COLLECT_APPROVAL = "upi_collect_approval"
+    UPI_MANDATE_APPROVAL = "upi_mandate_approval"
 
     @property
     def is_payment(self) -> bool:
@@ -96,6 +97,9 @@ class Action:
     # "card number", "Aadhaar number", "PAN". The value never leaves the page:
     # the page tells NoScam what kind of thing is being typed, not what it says.
     data_kind: Optional[str] = None
+    # "daily", "weekly", "monthly", "as presented" — for a standing instruction,
+    # the thing that turns a small number on screen into a large one.
+    recurrence: Optional[str] = None
 
 
 @dataclass(frozen=True)
@@ -118,6 +122,18 @@ def _sentence(text: str) -> str:
     which turns "WhatsApp" into "whatsapp" — and a product that misspells the
     app someone is looking at has just told them it doesn't know what it saw."""
     return text[:1].upper() + text[1:]
+
+
+# How often a standing instruction can fire in a year. "As presented" is the
+# one that hides the most: the merchant chooses, so the honest answer is the
+# daily ceiling rather than a comforting guess.
+_PER_YEAR = {"daily": 365, "weekly": 52, "fortnightly": 26, "monthly": 12,
+             "quarterly": 4, "yearly": 1, "as presented": 365}
+
+
+def _mandate_year(amount: Optional[float], recurrence: str) -> Optional[float]:
+    times = _PER_YEAR.get(recurrence)
+    return None if not amount or not times else amount * times
 
 
 def _money(amount: Optional[float], limits: Limits) -> str:
@@ -283,6 +299,36 @@ def decide(
             headline="Crypto can't be reversed",
             detail=(f"You're sending cryptocurrency to {where}. There is no way to undo "
                     f"it, so it needs a second pair of eyes."),
+            release="approval",
+            evidence=evidence,
+        )
+
+    # 4f. A standing instruction — UPI AutoPay, an e-mandate, a subscription.
+    #     The deception is arithmetic: the screen shows ₹99 while the approval
+    #     authorises ₹99 *every day* until it is cancelled, and the victim is
+    #     told the screen is a KYC re-verification or a prize claim. So the
+    #     total is spelled out, and it is never waved through on size.
+    if action.type is ActionType.UPI_MANDATE_APPROVAL:
+        every = (action.recurrence or "as presented").lower()
+        who = action.payee or "whoever set this up"
+        total = _mandate_year(action.amount, every)
+        arithmetic = (f"{_money(action.amount, limits)} {every}"
+                      + (f" — up to {_money(total, limits)} a year" if total else "")
+                      + f", to {who}, until somebody cancels it.")
+        if tainted:
+            return Decision(
+                disposition=Disposition.BLOCKED,
+                reason_code="mandate_after_message",
+                headline="This sets up a payment that repeats",
+                detail=(f"This is not a one-off: {arithmetic} And {arrival}. "
+                        f"A KYC update or a prize never needs a standing instruction."),
+                evidence=evidence,
+            )
+        return Decision(
+            disposition=Disposition.NEEDS_APPROVAL,
+            reason_code="mandate_needs_second_pair_of_eyes",
+            headline="This payment repeats until cancelled",
+            detail=f"{_sentence(arithmetic)}",
             release="approval",
             evidence=evidence,
         )

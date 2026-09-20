@@ -341,6 +341,10 @@
         kind = "crypto_transfer";
       } else if (GIFT_CARD_WORDS.test(page)) {
         kind = "gift_card_purchase";
+      } else if (MANDATE_WORDS.test(page)) {
+        // A standing instruction: the screen shows one debit, the approval
+        // authorises every debit after it.
+        kind = "upi_mandate_approval";
       } else if (COLLECT_WORDS.test(page) &&
                  (UPI_INTENT.test(payee) || UPI_INTENT.test(page))) {
         // Approving a request is paying, however the page words it.
@@ -351,6 +355,7 @@
         host: location.host,
         amount: rawAmount ? Number(rawAmount) : null,
         payee: payee || null,
+        recurrence: (page.match(RECURRENCE) || [null])[0],
       }, () => {
         form.dataset.noscamCleared = "1";
         form.requestSubmit ? form.requestSubmit() : form.submit();
@@ -393,6 +398,8 @@
 
   const GIFT_CARD_WORDS = /(gift\s?card|e-?gift|apple\s?card|google\s?play\s?(card|code)|steam\s?(card|wallet)|amazon\s?(gift|claim\s?code)|itunes)/i;
   const UPI_INTENT = /upi:\/\/pay\?|[\w.\-]{3,}@(oksbi|okaxis|okhdfcbank|okicici|ybl|ibl|axl|paytm|upi)\b/i;
+  const MANDATE_WORDS = /(autopay|auto-?debit|e-?mandate|\bmandate\b|standing instruction|recurring payment|subscribe\s?(&|and)\s?pay|every month until|until cancelled)/i;
+  const RECURRENCE = /\b(daily|weekly|fortnightly|monthly|quarterly|yearly|as presented)\b/i;
   const COLLECT_WORDS = /(collect\s?request|approve\s?(the\s?)?request|accept\s?(the\s?)?request|enter\s?(your\s?)?upi\s?pin|scan.{0,24}(receive|refund|prize|credit))/i;
   const CRYPTO_ADDRESS = /\b(0x[a-fA-F0-9]{40}|[13][a-km-zA-HJ-NP-Z1-9]{25,34}|bc1[a-z0-9]{25,62}|T[A-Za-z1-9]{33})\b/;
 
