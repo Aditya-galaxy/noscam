@@ -21,7 +21,6 @@ import base64
 import json
 import os
 import shutil
-import struct
 import subprocess
 import sys
 import wave
@@ -123,6 +122,59 @@ def timestamp(seconds: float) -> str:
     return f"{int(seconds // 60)}:{int(seconds % 60):02d}"
 
 
+# The hosted voices allow ten requests a day per model, and the script has
+# fifteen lines. Speaking several consecutive lines in one request fits inside
+# that — and reading them together gives a better result anyway, because the
+# model can carry the sentence rhythm across a paragraph instead of restarting
+# cold fifteen times. Each group is one request; the group's audio is one file;
+# and the build gets each line's share of it by length of text, which is close
+# enough when the only thing those boundaries decide is when a picture changes.
+GROUPS = [
+    ["hook", "problem", "thesis"],
+    ["the-page", "why-lists-fail"],
+    ["the-block", "the-reason"],
+    ["the-model"],
+    ["second-device", "the-approval"],
+    ["ordinary-life"],
+    ["other-vectors"],
+    ["history"],
+    ["the-numbers"],
+    ["limits-and-close"],
+]
+
+
+def render_grouped(script: dict, voice: str, key: str, force: bool) -> dict[str, float]:
+    """One request per group of lines. Returns each line's duration."""
+    by_id = {s["id"]: s for s in script["segments"]}
+    durations: dict[str, float] = {}
+    files: list[Path] = []
+
+    for number, group in enumerate(GROUPS, start=1):
+        path = OUT / f"g{number:02d}.wav"
+        spoken = "\n\n".join(by_id[name]["say"] for name in group)
+        tail = by_id[group[-1]].get("pause_after", 0.0)
+        if path.exists() and not force:
+            print(f"  [{number}/{len(GROUPS)}] {', '.join(group)} — already done", flush=True)
+        else:
+            print(f"  [{number}/{len(GROUPS)}] {', '.join(group)}…", flush=True)
+            write_wav(path, speak(spoken, voice, key), tail)
+        files.append(path)
+
+        # Share the group's length out by how much text each line is.
+        total = duration_of(path)
+        weights = [len(by_id[name]["say"]) for name in group]
+        for name, weight in zip(group, weights):
+            durations[name] = total * weight / sum(weights)
+
+    listing = OUT / "groups.txt"
+    listing.write_text("".join(f"file '{f.name}'\n" for f in files), encoding="utf-8")
+    subprocess.run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", str(listing),
+                    "-c", "copy", str(OUT / "narration.wav")], check=True,
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    (OUT / "timings.json").write_text(json.dumps(durations, indent=2), encoding="utf-8")
+    return durations
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Narrate the demo script.")
     parser.add_argument("--voice", default=None,
@@ -130,6 +182,9 @@ def main() -> int:
     parser.add_argument("--only", help="render a single segment by id, to redo one line")
     parser.add_argument("--force", action="store_true",
                         help="re-render lines that already exist")
+    parser.add_argument("--grouped", action="store_true",
+                        help="speak consecutive lines in one request, to fit the hosted "
+                             "voices' ten-a-day limit and keep one voice throughout")
     parser.add_argument("--engine", choices=("gemini", "say"), default="gemini",
                         help="'say' uses the machine's own voice: no quota, no network, "
                              "and the same voice for every line")
@@ -148,6 +203,18 @@ def main() -> int:
                            else "Samantha")
     segments = [s for s in script["segments"] if not args.only or s["id"] == args.only]
     OUT.mkdir(exist_ok=True)
+
+    if args.grouped:
+        durations = render_grouped(script, voice, key, args.force)
+        elapsed = 0.0
+        lines = ["# Cue sheet — what to do, and when\n\n"]
+        for segment in script["segments"]:
+            lines.append(f"- **{timestamp(elapsed)}** — {segment['do']}\n")
+            elapsed += durations[segment["id"]]
+        (OUT / "cues.md").write_text("".join(lines), encoding="utf-8")
+        print(f"\n  narration  {OUT / 'narration.wav'}  ({timestamp(elapsed)})")
+        print(f"  timings    {OUT / 'timings.json'}")
+        return 0
 
     cues, elapsed = [], 0.0
     for index, segment in enumerate(segments, start=1):
@@ -173,7 +240,7 @@ def main() -> int:
 
     listing = OUT / "segments.txt"
     listing.write_text("".join(
-        f"file '{(OUT / f'{i:02d}-{s['id']}.wav').name}'\n"
+        "file '{}'\n".format((OUT / "{:02d}-{}.wav".format(i, s["id"])).name)
         for i, s in enumerate(segments, start=1)), encoding="utf-8")
     narration = OUT / "narration.wav"
     subprocess.run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", str(listing),

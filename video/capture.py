@@ -15,7 +15,6 @@ mock-up of it.
 from __future__ import annotations
 
 import json
-import os
 import shutil
 import subprocess
 import sys
@@ -62,7 +61,7 @@ def shoot(name: str, url: str, size: tuple[int, int], wait_ms: int = 4000) -> Pa
 def scorecard_page() -> str:
     """The real scorecard, in a page that looks like the terminal it came from."""
     result = subprocess.run([sys.executable, str(HERE.parent / "eval" / "score.py")],
-                            capture_output=True, text=True, cwd=HERE.parent)
+                            capture_output=True, text=True, cwd=HERE.parent, check=False)
     body = (result.stdout or "").replace("&", "&amp;").replace("<", "&lt;")
     page = HERE / "frames" / "scorecard.html"
     page.write_text(f"""<!doctype html><meta charset="utf-8"><title>scorecard</title>

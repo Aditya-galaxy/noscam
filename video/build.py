@@ -97,15 +97,24 @@ def main() -> int:
         return 1
 
     script = json.loads((HERE / "script.json").read_text(encoding="utf-8"))
-    clips, index = [], 0
+    clips, shots, index = [], [], 0
+
+    # When the narration was spoken a paragraph at a time, there is no file per
+    # line to measure — the narrator wrote down how long each line ran instead.
+    timings_file = OUT / "timings.json"
+    timings = (json.loads(timings_file.read_text(encoding="utf-8"))
+               if timings_file.exists() else {})
 
     for order, segment in enumerate(script["segments"], start=1):
         name = segment["id"]
-        line = OUT / f"{order:02d}-{name}.wav"
-        if not line.exists():
-            print(f"  missing audio for {name} — rerun narrate.py")
-            return 1
-        seconds = wav_seconds(line)
+        if name in timings:
+            seconds = timings[name]
+        else:
+            line = OUT / f"{order:02d}-{name}.wav"
+            if not line.exists():
+                print(f"  missing audio for {name} — rerun narrate.py")
+                return 1
+            seconds = wav_seconds(line)
 
         parts = SPLITS.get(name, (SCENES.get(name),))
         share = seconds / len(parts)
@@ -114,9 +123,20 @@ def main() -> int:
             if not frame.exists():
                 print(f"  missing frame {frame.name}")
                 return 1
-            index += 1
-            print(f"  {index:>2}. {part:<18} {share:5.1f}s   ({name})")
-            clips.append(clip(frame, share, index))
+            # Several lines in a row can be spoken over one picture. Cutting
+            # between two copies of the same image would fade it out and back
+            # in — a blink the viewer notices and cannot explain. Hold it
+            # instead: one shot, as long as all the lines that share it.
+            if shots and shots[-1][0] == part:
+                shots[-1][1] += share
+                shots[-1][2].append(name)
+            else:
+                shots.append([part, share, [name]])
+
+    for part, seconds, names in shots:
+        index += 1
+        print(f"  {index:>2}. {part:<18} {seconds:5.1f}s   ({', '.join(names)})")
+        clips.append(clip(FRAMES / f"{part}.png", seconds, index))
 
     listing = OUT / "clips.txt"
     listing.write_text("".join(f"file '{c.name}'\n" for c in clips), encoding="utf-8")
