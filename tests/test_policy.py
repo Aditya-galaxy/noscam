@@ -411,3 +411,13 @@ def test_an_unspecified_recurrence_is_costed_at_the_daily_ceiling() -> None:
         typed_myself(), LIMITS, now=NOW,
     )
     assert "₹182,500 a year" in decision.detail
+
+
+@pytest.mark.parametrize("seconds, expected", [
+    (1, "1 second ago"), (40, "40 seconds ago"), (60, "1 minute ago"),
+    (130, "2 minutes ago"),
+])
+def test_the_arrival_phrase_counts_properly(seconds: int, expected: str) -> None:
+    """It says this sentence to a frightened person at the worst moment of their
+    week. "1 seconds ago" is the sound of software that is not paying attention."""
+    assert expected in from_message(seconds_ago=seconds).describe(NOW)

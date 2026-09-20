@@ -1,12 +1,39 @@
 # The demo video
 
-Two ways to make it. **Your own voice is better if you have twenty calm
+## The built one
+
+```bash
+python3 noscam.py                       # the product must be running
+python3 video/capture.py                # photographs every state, headlessly
+python3 video/narrate.py --engine say   # speaks script.json
+python3 video/build.py                  # -> video/out/noscam-demo.mp4
+```
+
+Three minutes, 1080p, about twenty seconds of encoding. Each narration line owns
+a scene and each scene lasts exactly as long as the audio over it, so the
+picture cannot drift away from the words.
+
+**Every frame is the real product**: real extension logic, real gate, real phone
+app, rendered by a real Chrome. Headless, so the capture is identical every run
+and nobody's desktop, notifications or other tabs end up in the film. The scam
+scenes start *in the message* and follow the link, because the referrer is what
+tells the gate a message sent this person here — loading the payment page
+directly produces a different, and much less interesting, decision. Only the
+voice is synthetic.
+
+Re-run `capture.py` after any UI change and the film is current again.
+
+## Or record it yourself
+
+The built video is honest but static. A screen recording of you actually
+clicking is better if you have twenty calm minutes — judges can hear conviction,
+and the rules ask that you be able to explain your own work. **Your own voice is better if you have twenty calm
 minutes** — judges can hear conviction, and the rules ask that you be able to
 explain your own work. The narrated route exists because a script read badly
 under deadline is worse than one read evenly, and because a take can be redone
 without re-recording the screen.
 
-## The narrated route
+### With the narration track
 
 ```bash
 python3 video/narrate.py --engine say   # → video/out/narration.wav + cues.md

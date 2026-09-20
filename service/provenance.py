@@ -92,7 +92,11 @@ class Provenance:
             return "you opened this page yourself"
         age = self.age(now) or timedelta(0)
         seconds = int(age.total_seconds())
-        when = f"{seconds} seconds ago" if seconds < 90 else f"{seconds // 60} minutes ago"
+        if seconds < 60:
+            when = "1 second ago" if seconds == 1 else f"{seconds} seconds ago"
+        else:
+            minutes = seconds // 60
+            when = "1 minute ago" if minutes == 1 else f"{minutes} minutes ago"
         return f"you arrived here from {pretty_source(self.source_host or '')} {when}"
 
 

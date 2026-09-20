@@ -53,6 +53,14 @@ for (const tab of document.querySelectorAll("nav button")) {
   });
 }
 
+// A deep link to a tab: /app/?tab=history. Useful for a bookmark, and it is how
+// the demo frames are captured without anyone clicking.
+const wantedTab = new URLSearchParams(location.search).get("tab");
+if (wantedTab) {
+  const target = document.querySelector(`nav button[data-tab="${wantedTab}"]`);
+  if (target) target.click();
+}
+
 // --- approvals -------------------------------------------------------------
 
 let lastSeen = "";

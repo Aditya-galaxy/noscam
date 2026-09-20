@@ -74,6 +74,14 @@
     event.preventDefault();
     document.getElementById("done").style.display = "block";
   });
+
+  // ?auto=pay — press the button by itself, so a capture can film the result.
+  if (new URLSearchParams(location.search).get("auto") === "pay") {
+    addEventListener("load", () => setTimeout(() => {
+      const button = document.querySelector('#pay');
+      if (button) button.click();
+    }, 700));
+  }
 </script>
 <script src="http://localhost:8792/content.js"></script>
 </body>

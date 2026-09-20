@@ -83,5 +83,23 @@
     is sent anywhere.
   </div>
 </div>
+<script>
+  // ?auto=open&target=… — follow the link the way a person would, from inside
+  // the thread, so the page that opens carries the referrer that tells NoScam a
+  // message is what sent them there. Loading that page directly would look like
+  // the person typed the address themselves, which is a different situation and
+  // a different decision.
+  (() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("auto") !== "open") return;
+    const ids = { transfer: "payment-link", gift: "giftcard-link", apk: "apk-link" };
+    const link = document.getElementById(ids[params.get("target") || "transfer"]);
+    if (!link) return;
+    addEventListener("load", () => setTimeout(() => {
+      link.href += (link.href.includes("?") ? "&" : "?") + "auto=pay";
+      link.click();
+    }, 600));
+  })();
+</script>
 </body>
 </html>

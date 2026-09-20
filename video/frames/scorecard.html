@@ -1,0 +1,66 @@
+<!doctype html><meta charset="utf-8"><title>scorecard</title>
+<style>
+  body { margin: 0; background: #0b0b0d; color: #e7e7ea; display: grid;
+         place-items: center; height: 100vh;
+         font: 13px/1.45 ui-monospace, "SF Mono", Menlo, monospace; }
+  pre { margin: 0; padding: 26px 30px; }
+  b { color: #fff; }
+</style>
+<pre>
+  NoScam — scored on 33 situations
+
+     situation                                            outcome            why
+  ────────────────────────────────────────────────────────────────────────────────────────────────────
+  ✓  Bank imposter: move your money to a safe account     held for approval  new_payee_after_message
+  ✓  Digital arrest: install the support app              blocked            install_after_message
+  ✓  Screen-share support call: install AnyDesk           blocked            remote_access_blocked
+  ✓  Fake bank login reached from an email                blocked            credentials_after_message
+  ✓  One-time code typed on the scammer's page            blocked            credentials_after_message
+  ✓  Lookalike domain payment from a Telegram message     held for approval  new_payee_after_message
+  ✓  Large transfer pushed by a message                   held for approval  new_payee_after_message
+  ✓  Refund overpayment scam                              held for approval  new_payee_after_message
+  ✓  Returning to a site the household already reported   blocked            reported_link
+  ✓  Traffic challan smish, paid on the fake portal       held for approval  new_payee_after_message
+  ✓  Paying the landlord, as every month                  went through       ok
+  ✓  Electricity bill from a bookmark                     went through       ok
+  ✓  Logging into your own bank                           went through       ok
+  ✓  Your bank's own one-time code, on your bank's page   went through       ok
+  ✓  Paying a known payee after reading a news article    went through       ok
+  ✓  Installing software you went and found yourself      went through       ok
+  ✓  Second payment of the day, still inside the limit    went through       ok
+  ~  A message from your son, paying him back             delayed            payment_after_message
+  ~  Paying the plumber for the first time                delayed            new_payee_cooling
+  ✓  Reading a bank statement, no action at all           went through       ok
+  ✓  Gift card demand on a support call                   blocked            gift_cards_after_message
+  ✓  Investment 'advisor' wants crypto                    blocked            crypto_after_message
+  ✓  Reading out a gift card code to the caller           blocked            sensitive_data_after_message
+  ✓  KYC page asking for an Aadhaar number                blocked            sensitive_data_after_message
+  ✓  Buying a birthday gift card                          went through       ok
+  ✓  Paying for shopping with your own card               went through       ok
+  ~  Buying crypto you decided to buy                     held for approval  crypto_needs_second_pair_of_eyes
+  ✓  UPI collect request dressed up as a refund           blocked            upi_collect_after_message
+  ✓  'Scan this QR to receive your prize'                 blocked            upi_collect_after_message
+  ~  Accepting a collect request from the tea shop you us held for approval  upi_collect_request
+  ✓  AutoPay mandate disguised as a KYC re-verification   blocked            mandate_after_message
+  ✓  'Claim your prize' mandate with a blank amount       blocked            mandate_after_message
+  ~  Subscribing to a streaming service yourself          held for approval  mandate_needs_second_pair_of_eyes
+
+  ────────────────────────────────────────────────────────────────────────────────────────────────────
+
+  Scams stopped                        18/18
+  Ordinary actions left alone          10/15
+  Ordinary actions slowed down         5/15
+  Ordinary actions refused outright    0/15
+
+  Ordinary actions that were slowed down (the cost this household pays):
+    ~ A message from your son, paying him back
+    ~ Paying the plumber for the first time
+    ~ Buying crypto you decided to buy
+    ~ Accepting a collect request from the tea shop you use
+    ~ Subscribing to a streaming service yourself
+
+  Hand-written situations are a regression test, not a measured
+  accuracy claim. A real number needs real households, and nobody has
+  used this in one yet.
+
+</pre>
