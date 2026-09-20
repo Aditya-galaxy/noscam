@@ -143,6 +143,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   const handlers = {
     "noscam:check": () => checkAction(tabId, message.action),
     "noscam:hold": () => ask(`/holds/${message.holdId}`),
+    "noscam:advice": () => ask(`/holds/${message.holdId}/advice`),
     "noscam:override": () =>
       ask(`/holds/${message.holdId}/override`, { reason: message.reason || "" }),
     "noscam:state": async () => ({

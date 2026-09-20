@@ -20,6 +20,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from .audit import AuditLog
+from .explain import coach
 from .links import check_url
 from .policy import (
     Action, ActionType, Decision, Disposition, Limits, cool_off_expires, decide,
@@ -261,6 +262,23 @@ def decide_hold(hold_id: str, payload: HoldDecisionIn) -> dict[str, Any]:
     audit.record("hold_decision", {"hold_id": hold_id, "verdict": payload.verdict,
                                    "by": payload.by, "fingerprint": hold.fingerprint}, at=now)
     return store.read().holds[hold_id].summary(now)
+
+
+@app.get("/holds/{hold_id}/advice")
+def hold_advice(hold_id: str) -> dict[str, Any]:
+    """What to do right now, phrased for this situation by a language model.
+
+    Deliberately a second request: the decision and its explanation are already
+    on the screen before this is asked for, so a slow or missing model delays
+    nothing and changes nothing. If it returns nothing, nothing is shown.
+    """
+    hold = store.read().holds.get(hold_id)
+    if hold is None:
+        raise HTTPException(status_code=404, detail="no such hold")
+    advice = coach(hold.decision, hold.action)
+    if advice:
+        audit.record("advice_shown", {"hold_id": hold_id, "advice": advice})
+    return {"advice": advice}
 
 
 class OverrideIn(BaseModel):

@@ -58,6 +58,9 @@
     if (message.kind === "noscam:hold") {
       return { ok: true, data: await post(`/holds/${message.holdId}`) };
     }
+    if (message.kind === "noscam:advice") {
+      return { ok: true, data: await post(`/holds/${message.holdId}/advice`) };
+    }
     if (message.kind === "noscam:override") {
       return { ok: true, data: await post(`/holds/${message.holdId}/override`,
                                           { reason: message.reason || "" }) };
@@ -134,6 +137,8 @@
         .quiet { background: transparent; color: #6b7686; font-size: 14px;
                  font-weight: 500; text-decoration: underline; padding: 6px; }
         .status { margin-top: 16px; font-size: 15px; color: #45566c; min-height: 22px; }
+        .advice { font-size: 16px; color: #1b4332; background: #eaf6ee; padding: 12px 14px;
+                  border-radius: 10px; margin: 0 0 14px; }
         .mark { font-size: 13px; color: #8a94a3; margin-top: 18px; }
       </style>
       <div class="veil">
@@ -154,6 +159,19 @@
 
     root.querySelector("h2").textContent = decision.headline;
     root.querySelector("p").textContent = decision.detail;
+
+    // Advice is fetched after the card is already up, so a slow model never
+    // delays the thing that actually matters — stopping the action.
+    if (decision.hold_id) {
+      send({ kind: "noscam:advice", holdId: decision.hold_id }).then((reply) => {
+        const advice = reply.ok && reply.data && reply.data.advice;
+        if (!advice || !overlayHost) return;
+        const line = document.createElement("p");
+        line.className = "advice";
+        line.textContent = advice;
+        root.querySelector("h2").after(line);
+      });
+    }
     const primary = root.querySelector(".primary");
     const status = root.querySelector(".status");
     primary.textContent = decision.button || "OK";
