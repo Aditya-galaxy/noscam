@@ -85,13 +85,25 @@ def test_remote_access_is_blocked_whatever_the_provenance() -> None:
         assert "AnyDesk.exe" in decision.detail
 
 
-def test_an_apk_download_is_the_same_rule() -> None:
+def test_an_apk_sent_in_a_message_is_blocked() -> None:
     decision = decide(
         Action(type=ActionType.APP_INSTALL_FILE, host="challan-pay.example",
                file_name="traffic-challan.apk"),
         from_message(), LIMITS, now=NOW,
     )
     assert decision.disposition is Disposition.BLOCKED
+    assert decision.reason_code == "install_after_message"
+
+
+def test_software_you_went_and_got_yourself_is_left_alone() -> None:
+    """Blocking every installer would break ordinary computer use, and a tool
+    that does that gets uninstalled before it ever stops a scam."""
+    decision = decide(
+        Action(type=ActionType.APP_INSTALL_FILE, host="zoom.us",
+               file_name="Zoom.pkg"),
+        typed_myself(), LIMITS, now=NOW,
+    )
+    assert decision.disposition is Disposition.ALLOW
 
 
 def test_remote_access_can_be_permitted_by_the_household() -> None:

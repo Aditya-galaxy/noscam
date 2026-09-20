@@ -141,11 +141,11 @@ def decide(
         "payee": action.payee,
     }
 
-    # 1. Handing someone else control of the machine. There is no version of this
-    #    that a real bank or a real police officer asks for, and unlike a payment
-    #    it cannot be reversed once the session is open — so it does not become
-    #    acceptable just because a guardian is asleep and says yes.
-    if action.type.hands_over_control and limits.block_remote_access:
+    # 1. Handing someone else live control of the machine. There is no version of
+    #    this that a real bank or a real police officer asks for, and unlike a
+    #    payment it cannot be reversed once the session is open — so it does not
+    #    become acceptable just because a guardian is asleep and says yes.
+    if action.type is ActionType.REMOTE_ACCESS_DOWNLOAD and limits.block_remote_access:
         what = action.file_name or "this program"
         return Decision(
             disposition=Disposition.BLOCKED,
@@ -153,6 +153,22 @@ def decide(
             headline="This would let someone else control your computer",
             detail=(f"{what} gives another person live control of this machine. "
                     f"Real banks and real police never ask for this. "
+                    f"The download has been stopped."),
+            evidence=evidence,
+        )
+
+    # 1b. Any other installer, when a message is what sent you to it. This is the
+    #     APK-in-a-WhatsApp-message scam, which ends with the attacker reading
+    #     every SMS on the phone. Installing software you went looking for
+    #     yourself is ordinary computer use and is left alone.
+    if action.type is ActionType.APP_INSTALL_FILE and tainted:
+        what = action.file_name or "this file"
+        return Decision(
+            disposition=Disposition.BLOCKED,
+            reason_code="install_after_message",
+            headline="Don't install this",
+            detail=(f"{what} arrived through a message — {arrival}. Apps sent in "
+                    f"messages are how phones and computers get taken over. "
                     f"The download has been stopped."),
             evidence=evidence,
         )
