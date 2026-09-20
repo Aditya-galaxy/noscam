@@ -117,7 +117,10 @@
   const closeOverlay = () => {
     clearInterval(pollTimer);
     clearInterval(countdownTimer);
-    if (overlayHost) overlayHost.remove();
+    if (overlayHost) {
+      if (overlayHost.__noscamRemoveKeys) overlayHost.__noscamRemoveKeys();
+      overlayHost.remove();
+    }
     overlayHost = null;
   };
 
@@ -125,7 +128,7 @@
     closeOverlay();
     overlayHost = document.createElement("div");
     overlayHost.style.cssText = "all: initial; position: fixed; inset: 0; z-index: 2147483647;";
-    const root = overlayHost.attachShadow({ mode: "closed" });
+    const root = overlayHost.attachShadow({ mode: "open" });
     root.innerHTML = `
       <style>
         :host { all: initial; }
@@ -167,19 +170,27 @@
                   min-height: 18px; }
         .mark { margin: 18px 0 0; padding-top: 14px; border-top: 1px solid rgba(255,255,255,.12);
                 font-size: 12px; color: #71717a; }
+        button:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+        .secondary:focus-visible, .quiet:focus-visible { outline-color: #fff; }
+        @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+        @media (prefers-contrast: more) {
+          .card { background: #000; border-color: #fff; }
+          p, .status { color: #fff; }
+        }
       </style>
       <div class="veil">
-        <div class="card" role="alertdialog" aria-modal="true">
+        <div class="card" role="alertdialog" aria-modal="true"
+             aria-labelledby="noscam-title" aria-describedby="noscam-detail">
           <div class="bar"><span><b>NoScam</b></span><span class="kind">on hold</span></div>
           <div class="body">
-            <h2></h2>
-            <p></p>
+            <h2 id="noscam-title" tabindex="-1"></h2>
+            <p id="noscam-detail"></p>
             <div class="row">
               <button class="primary"></button>
               <button class="secondary">Cancel — don't do this</button>
               <button class="quiet">I'm sure. Continue anyway</button>
             </div>
-            <div class="status"></div>
+            <div class="status" role="status" aria-live="polite"></div>
             <p class="mark">Nothing has been sent. Decided on this computer, and written
               down so you can check it later.</p>
           </div>
@@ -273,6 +284,43 @@
     }
 
     document.documentElement.appendChild(overlayHost);
+
+    // Keyboard and screen-reader behaviour. Someone who navigates by keyboard —
+    // or who cannot see the card at all — must be able to understand it and get
+    // out of it, and must not be able to tab past it onto the page underneath
+    // and press the bank's own button.
+    const focusables = [...root.querySelectorAll("button:not([disabled])")];
+    const heading = root.querySelector("h2");
+    heading.focus({ preventScroll: true });
+
+    const onKey = (event) => {
+      if (!overlayHost) return;
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeOverlay();                      // Escape is "cancel", never "continue"
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const live = focusables.filter((node) => !node.disabled);
+      if (!live.length) return;
+      const first = live[0];
+      const last = live[live.length - 1];
+      const active = root.activeElement;
+      if (event.shiftKey && (active === first || active === heading)) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
+      } else if (active === heading) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", onKey, true);
+    overlayHost.dataset.noscamKeyHandler = "1";
+    overlayHost.__noscamRemoveKeys = () =>
+      document.removeEventListener("keydown", onKey, true);
   };
 
   // --- interception --------------------------------------------------------

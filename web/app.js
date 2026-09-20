@@ -210,6 +210,22 @@ $("save").addEventListener("click", async () => {
   loadHousehold();
 });
 
+// Text size, remembered. Nothing else about this app is stored in the browser.
+const sizeButton = $("text-size");
+const applySize = (large) => {
+  document.body.classList.toggle("large", large);
+  sizeButton.setAttribute("aria-pressed", String(large));
+  sizeButton.textContent = large ? "Normal text" : "Bigger text";
+};
+try {
+  applySize(localStorage.getItem("noscam:large") === "1");
+} catch { /* private browsing: default size is fine */ }
+sizeButton.addEventListener("click", () => {
+  const large = !document.body.classList.contains("large");
+  applySize(large);
+  try { localStorage.setItem("noscam:large", large ? "1" : "0"); } catch { /* ignore */ }
+});
+
 loadHousehold();
 refresh();
 setInterval(refresh, 2000);

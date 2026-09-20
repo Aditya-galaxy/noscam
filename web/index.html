@@ -89,6 +89,20 @@
                 color: var(--dim); }
   .limit b { font: 17px/1 var(--mono); }
   .save { width: 100%; margin-top: 20px; background: var(--paper); color: #09090b; }
+  :focus-visible { outline: 3px solid var(--paper); outline-offset: 3px; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  /* Reading this on a phone, under pressure, possibly at 70. One tap makes
+     everything bigger and it is remembered. */
+  body.large { font-size: 20px; }
+  body.large .card h2 { font-size: 25px; }
+  body.large .signals li, body.large .card p { font-size: 18px; }
+  body.large button.action { font-size: 15px; padding: 18px 12px; }
+  .text-size { position: fixed; right: 12px; bottom: 12px; z-index: 9;
+               background: rgba(20,20,23,.86); color: var(--text);
+               border: 1px solid var(--line); border-radius: 2px; padding: 10px 14px;
+               font: 600 11px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase;
+               backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+               cursor: pointer; }
   .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: 26px;
            background: rgba(255,255,255,.96); color: #09090b; padding: 12px 20px;
            border-radius: 2px; font: 600 11px/1 var(--mono); letter-spacing: .16em;
@@ -110,7 +124,8 @@
 
 <main>
   <section id="tab-approvals">
-    <div id="approvals"></div>
+    <div id="approvals" role="region" aria-live="polite"
+         aria-label="Things waiting for your decision"></div>
   </section>
 
   <section id="tab-link" hidden>
@@ -153,7 +168,8 @@
   </section>
 </main>
 
-<div class="toast" id="toast"></div>
+<button class="text-size" id="text-size" aria-pressed="false">Bigger text</button>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script src="app.js"></script>
 </body>
 </html>

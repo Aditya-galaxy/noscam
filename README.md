@@ -58,15 +58,18 @@ claim. A real number needs real households, and nobody has used this in one yet.
 
 ```bash
 python3 -m pip install fastapi uvicorn httpx pydantic
-python3 -m uvicorn service.app:app --port 8787        # the gate
-python3 demo/serve.py                                  # a stand-in messenger and bank
-python3 demo/seed.py                                   # limits + payees for the demo
+python3 noscam.py
 ```
 
-- Phone app: **http://localhost:8787/app/** (approvals, link checks, limits)
-- Try the scam: **http://localhost:8790** → click the payment link → press
-  Transfer. The demo pages load the extension's content script directly, so the
-  gate works without installing anything.
+That starts the gate, the stand-in messenger and bank, seeds a household and
+opens the first page. Then:
+
+- **http://localhost:8790** — the scam. Click the payment link, press Transfer.
+- **http://127.0.0.1:8787/app/** — the phone: approvals, link checks, limits.
+- **http://localhost:8791** — their own bank, to see ordinary payments pass.
+
+The demo pages load the extension's content script directly, so the gate works
+without installing anything.
 - Real protection on a desktop: load `extension/` at `chrome://extensions` →
   Developer mode → *Load unpacked*. Only then can NoScam see how a tab was
   really reached and cancel a download.
@@ -76,15 +79,21 @@ works and the deterministic explanation is what you see.
 
 ## How it works
 
+```mermaid
+flowchart LR
+    M["message<br/>WhatsApp · email"] -->|click| P["a page"]
+    T["typed or<br/>bookmarked"] --> P
+    P -->|"pay · code · install<br/>gift card · crypto · UPI"| G{"the gate<br/><i>deterministic</i>"}
+    G -->|"you opened this yourself,<br/>inside your limits"| A["allowed"]
+    G -->|"a message sent you here"| H["held"]
+    G -->|"gift cards · codes ·<br/>remote access · ID numbers"| R["refused<br/><i>nobody can approve</i>"]
+    H --> S["second device<br/>says yes"] --> A
+    G -.->|"reason codes only"| L["model writes<br/>one line of advice"]
+    L -.->|"cannot change<br/>the decision"| H
 ```
-   a message  ──click──▶  a payment page  ──press pay──▶  ┌───────────────┐
-                                                          │  the gate     │
-   typed yourself ─────▶  the same page  ──press pay──▶   │ (deterministic)│
-                                                          └───────┬───────┘
-                                                   held ◀─────────┴────────▶ allowed
-                                                    │
-                                        another device says yes
-```
+
+Everything the gate decides is written to a hash-chained log, so "what actually
+happened" survives the argument afterwards.
 
 - **`service/provenance.py`** — how the page was reached. A link clicked in a
   messenger or webmail taints what follows for 15 minutes; typing the address
@@ -105,6 +114,17 @@ works and the deterministic explanation is what you see.
   rather than scolds. The same content script runs standalone for the demo.
 - **`web/`** — the phone: approvals, link checking, limits. Installable, and on
   Android it registers as a share target so a link can be sent straight to it.
+
+### Built for the person it is for
+
+Someone frightened, rushed, possibly 70, possibly using a screen reader. So:
+plain words and no jargon; one decision per screen; a **Bigger text** control
+that is remembered; full keyboard operation with focus kept inside the card, so
+Tab cannot land on the bank's own *Pay* button underneath; Escape always means
+cancel, never continue; the card announces itself and its status to a screen
+reader; and it honours reduced-motion and high-contrast settings. Colour carries
+no meaning anywhere — a red warning banner is the one thing every scam page
+already imitates.
 
 ### Security properties worth naming
 
