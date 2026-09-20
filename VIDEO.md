@@ -9,9 +9,16 @@ without re-recording the screen.
 ## The narrated route
 
 ```bash
-export GEMINI_API_KEY=…
-python3 video/narrate.py              # → video/out/narration.wav + cues.md
+python3 video/narrate.py --engine say   # → video/out/narration.wav + cues.md
 ```
+
+That uses the machine's own voice: no quota, no network, and the same voice from
+the first line to the last. The hosted Gemini voices sound better and are one
+flag away — `python3 video/narrate.py` with `GEMINI_API_KEY` set — but the free
+tier allows **ten requests per day per model**, which is fewer than this script
+has lines. A narration that changes voice halfway through because a quota ran
+out is worse than one that is merely less polished, so `say` is the default
+advice and Gemini is for when billing is enabled or the quota has reset.
 
 That speaks every line in `video/script.json`, bakes the pause after each one
 into the audio, and writes a cue sheet with the timestamp of every action. Then:
