@@ -1,5 +1,9 @@
 # NoScam
 
+[**Download and read about it**](https://aditya-galaxy.github.io/noscam/) ·
+[**Watch the demo (3 min)**](https://aditya-galaxy.github.io/noscam/noscam-demo.mp4) ·
+[What it cannot do](LIMITATIONS.md)
+
 **The scams that take the most money never break any encryption. They get the
 person to authorise it.**
 
@@ -66,10 +70,10 @@ Ordinary actions that were slowed down (the cost this household pays):
 Thirty hand-written situations are a regression test, not a measured accuracy
 claim. A real number needs real households, and nobody has used this in one yet.
 
-**For someone who just wants to use it:** [the download page](https://aditya-galaxy.github.io/noscam/)
-explains what it does, what it costs you, what leaves your computer (nothing
-about your money), and how to install it — written for a person, not a
-developer.
+**If you are not going to read this file:** the
+[download page](https://aditya-galaxy.github.io/noscam/) says what it does, what
+it costs, what leaves your computer (nothing about your money) and how to
+install it — written for a person, not a developer.
 
 ## Run it
 
