@@ -67,6 +67,16 @@
   .payee:last-of-type { border-bottom: 0; }
   .payee button { background: none; border: 0; color: var(--muted); font: 14px var(--sans);
                   text-decoration: underline; cursor: pointer; padding: 4px; }
+  .event { display: flex; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+  .event:last-of-type { border-bottom: 0; }
+  .event .when { flex: 0 0 74px; font-size: 13px; color: var(--muted); }
+  .event .what { flex: 1; }
+  .event .what b { display: block; font-weight: 600; }
+  .event .what span { font-size: 14px; color: var(--muted); }
+  .counts { display: flex; gap: 22px; margin-top: 4px; }
+  .counts div { text-align: left; }
+  .counts b { display: block; font-size: 26px; font-weight: 600; line-height: 1.2; }
+  .counts span { font-size: 13px; color: var(--muted); }
   .save { width: 100%; margin-top: 18px; background: var(--fg); color: #fff; }
   :focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
@@ -92,12 +102,29 @@
 
 <nav role="tablist">
   <button role="tab" aria-selected="true" data-tab="approvals">Approvals</button>
-  <button role="tab" aria-selected="false" data-tab="link">Check a link</button>
+  <button role="tab" aria-selected="false" data-tab="link">Links</button>
+  <button role="tab" aria-selected="false" data-tab="history">History</button>
   <button role="tab" aria-selected="false" data-tab="limits">Limits</button>
 </nav>
 
 <main>
   <section id="tab-approvals">
+    <div class="card" id="setup-card" hidden>
+      <h2>Set this up once</h2>
+      <p class="meta">Two answers and NoScam knows how to behave. You can change
+        both later.</p>
+      <label for="setup-guardian">Who should be asked before money moves?</label>
+      <input id="setup-guardian" type="text" placeholder="A name — yours, or theirs">
+      <label for="setup-payees">Who do you already pay? One per line.</label>
+      <input id="setup-payees" type="text" placeholder="Landlord, Electricity Board, Aarav">
+      <button class="action save" id="setup-save">Done</button>
+    </div>
+
+    <div class="card" id="all-well" hidden>
+      <h2>NoScam is watching this household</h2>
+      <p class="meta" id="all-well-line"></p>
+    </div>
+
     <div id="approvals" role="region" aria-live="polite"
          aria-label="Things waiting for your decision"></div>
   </section>
@@ -124,6 +151,14 @@
       <div class="row"><button class="action approve" id="check">Check it</button></div>
       <div id="verdict"></div>
     </div>
+  </section>
+
+  <section id="tab-history" hidden>
+    <div class="card" id="history-summary">
+      <h2>This week</h2>
+      <p class="meta">Loading…</p>
+    </div>
+    <div id="history"></div>
   </section>
 
   <section id="tab-limits" hidden>

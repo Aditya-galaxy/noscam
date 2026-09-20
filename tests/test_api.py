@@ -450,3 +450,47 @@ def test_loopback_needs_no_token_so_the_extension_is_unaffected(api) -> None:
     token would add a pairing step that protects nothing."""
     client, _ = api
     assert client.get("/holds").status_code == 200
+
+
+def test_the_household_can_see_what_noscam_actually_did(api) -> None:
+    """A hold disappears after five minutes. Without a record anyone can read,
+    the overrides are logged for nobody and nothing can be judged."""
+    client, _ = api
+    hold_id = client.post("/gate/check", json=PAYMENT).json()["hold_id"]
+    client.post(f"/holds/{hold_id}/decision", json={"verdict": "approve", "by": "Priya"})
+    client.post("/gate/check", json={
+        "action": {"type": "otp_entry", "host": "hdfc-secure.example"},
+        "provenance": {"origin": "link", "source_host": "web.whatsapp.com", "at": just_now()},
+    })
+
+    history = client.get("/history").json()
+    assert history["summary"]["stopped"] >= 2
+    assert history["summary"]["approved"] == 1
+    outcomes = [item["outcome"] for item in history["items"]]
+    assert "approved" in outcomes and "blocked" in outcomes
+    # Newest first: someone opening this wants to know what just happened.
+    assert history["items"][0]["at"] >= history["items"][-1]["at"]
+
+
+def test_an_override_is_surfaced_rather_than_just_logged(api) -> None:
+    client, _ = api
+    hold_id = client.post("/gate/check", json=PAYMENT).json()["hold_id"]
+    client.post(f"/holds/{hold_id}/override", json={"reason": "I'm sure"})
+    assert client.get("/history").json()["summary"]["overridden"] == 1
+
+
+def test_history_is_not_readable_by_a_web_page_or_an_unpaired_device(api, monkeypatch) -> None:
+    client, module = api
+    monkeypatch.setattr(module, "LAN_MODE", True)
+    monkeypatch.setattr(module, "LOOPBACK", set())
+    assert client.get("/history").status_code == 401
+
+
+def test_history_is_written_for_a_person_not_for_us(api) -> None:
+    """Nobody should have to read "new_payee_after_message" to find out what
+    happened to their money."""
+    client, _ = api
+    client.post("/gate/check", json=PAYMENT)
+    item = client.get("/history").json()["items"][0]
+    assert item["what"] == "A payment to someone new, pushed by a message"
+    assert "_" not in item["what"]

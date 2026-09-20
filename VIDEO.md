@@ -1,6 +1,6 @@
 # The demo video — word for word
 
-**Target: 3 minutes 30.** The limit is 5, but judges watch these back to back and
+**Target: 3 minutes 45.** The limit is 5, but judges watch these back to back and
 a tight one reads as confidence. Every second is the product actually running:
 no slides, no architecture diagram, no talking head.
 
@@ -139,7 +139,17 @@ Bank while the money goes to an Axis handle."**
 
 ---
 
-## 3:10 — The number, and what it can't do (25s)
+## 3:05 — It remembers (15s)
+
+> **SCREEN:** the phone, **History** tab.
+
+**"And it keeps a record. Fourteen things stopped this week, one the guardian
+allowed, none overridden. If someone had pressed 'continue anyway', it would say
+so here — which is the point of logging it."**
+
+---
+
+## 3:20 — The number, and what it can't do (25s)
 
 > **SCREEN:** terminal, `python3 eval/score.py`.
 
@@ -172,6 +182,7 @@ purpose, because a control you can't get past is a control people switch off."**
 ## Five frames for the Devpost gallery
 
 1. The held payment card, reason visible.
+0. The History tab, "This week" counts visible.
 2. The phone approval card.
 3. The landlord payment going through untouched.
 4. The gift-card refusal.

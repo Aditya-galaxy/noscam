@@ -12,7 +12,7 @@ from __future__ import annotations
 import hashlib
 import os
 import secrets
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Request
@@ -623,6 +623,96 @@ def pair_claim(payload: PairIn) -> dict[str, Any]:
 # --------------------------------------------------------------------------- #
 # Audit
 # --------------------------------------------------------------------------- #
+
+# The reason codes are for the audit chain and for us. Nobody should have to
+# read "new_payee_after_message" to find out what happened to their money.
+REASON_WORDS = {
+    "new_payee_after_message": "A payment to someone new, pushed by a message",
+    "payment_after_message": "A payment prompted by a message",
+    "new_payee_cooling": "A first payment to someone new",
+    "over_transaction_cap": "A payment over the household limit",
+    "over_daily_cap": "A payment over the daily limit",
+    "credentials_after_message": "A password or code asked for after a message",
+    "sensitive_data_after_message": "Personal details asked for after a message",
+    "remote_access_blocked": "Remote-control software",
+    "install_after_message": "An app sent in a message",
+    "gift_cards_after_message": "Gift cards, asked for by a message",
+    "crypto_after_message": "Crypto, asked for by a message",
+    "crypto_needs_second_pair_of_eyes": "A crypto transfer",
+    "upi_collect_after_message": "A collect request that takes money",
+    "upi_collect_request": "A collect request",
+    "mandate_after_message": "A repeating payment, set up by a message",
+    "mandate_needs_second_pair_of_eyes": "A payment that repeats",
+    "reported_link": "A site this household reported",
+    "phishing_page_after_message": "A page pretending to be someone else",
+    "reported_page_opened": "A site this household reported",
+    "denied_by_guardian": "Something already declined",
+}
+
+
+@app.get("/history")
+def history(days: int = 7, _: None = Depends(require_household_token)) -> dict[str, Any]:
+    """What NoScam has actually done, in the household's own words.
+
+    A hold expires after five minutes and disappears, which is right for the
+    queue and wrong for everything else: a control nobody can look back at is a
+    control nobody can judge. This is also what makes an override mean
+    something — it is logged either way, but until somebody sees it, logging it
+    was decoration.
+    """
+    cutoff = utcnow() - timedelta(days=max(1, days))
+    items: list[dict[str, Any]] = []
+    for record in audit.records():
+        if "corrupt" in record:
+            continue
+        when = datetime.fromisoformat(record["ts"])
+        if when < cutoff:
+            continue
+        payload = record.get("payload", {})
+        kind = record.get("kind")
+        action = payload.get("action", {}) or {}
+
+        if kind == "gate_decision" and payload.get("disposition") != "allow":
+            reason = payload.get("reason_code", "")
+            items.append({
+                "at": record["ts"],
+                "what": REASON_WORDS.get(reason, reason.replace("_", " ")),
+                "outcome": payload.get("disposition"),
+                "reason": payload.get("reason_code"),
+                "host": action.get("host") or payload.get("evidence", {}).get("host", ""),
+                "amount": action.get("amount"),
+                "payee": action.get("payee"),
+            })
+        elif kind == "page_blocked":
+            items.append({"at": record["ts"], "outcome": "blocked",
+                          "reason": payload.get("reason_code"),
+                          "host": payload.get("host", ""), "what": "A fake page was stopped"})
+        elif kind == "hold_decision":
+            items.append({"at": record["ts"],
+                          "outcome": "approved" if payload.get("verdict") == "approve"
+                          else "declined",
+                          "reason": "answered_on_another_device",
+                          "who": payload.get("by", ""), "what": "Answered on another device"})
+        elif kind == "override":
+            items.append({"at": record["ts"], "outcome": "overridden", "reason": "override",
+                          "what": "Someone continued anyway"})
+        elif kind == "link_reported":
+            items.append({"at": record["ts"], "outcome": "reported", "reason": "link_reported",
+                          "host": payload.get("host", ""), "what": "A site was reported"})
+
+    items.reverse()
+    counted = [i["outcome"] for i in items]
+    return {
+        "days": days,
+        "summary": {
+            "stopped": sum(1 for o in counted if o in ("blocked", "needs_approval", "cool_off")),
+            "approved": counted.count("approved"),
+            "declined": counted.count("declined"),
+            "overridden": counted.count("overridden"),
+        },
+        "items": items[:60],
+    }
+
 
 @app.get("/audit/verify")
 def audit_verify() -> dict[str, Any]:

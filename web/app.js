@@ -49,6 +49,7 @@ for (const tab of document.querySelectorAll("nav button")) {
       $(`tab-${other.dataset.tab}`).hidden = other !== tab;
     }
     if (tab.dataset.tab === "limits") loadHousehold();
+    if (tab.dataset.tab === "history") loadHistory();
   });
 }
 
@@ -61,13 +62,13 @@ function renderApprovals(holds) {
   const pending = holds.filter((hold) => hold.status === "pending");
 
   if (!pending.length) {
-    box.innerHTML = `
-      <div class="empty">
-        <strong>Nothing waiting</strong>
-        You'll see a card here the moment something is paused.
-      </div>`;
+    // "Nothing waiting" on its own reads like a thing that is not working.
+    // Say what it is doing instead, in the household's own numbers.
+    box.innerHTML = "";
+    $("all-well").hidden = false;
     return;
   }
+  $("all-well").hidden = true;
 
   // Only redraw when something actually changed, so a countdown doesn't reset
   // under the thumb of someone about to press Approve.
@@ -193,6 +194,63 @@ if (shared) {
   checkLink(shared);
 }
 
+// --- what it has actually done ---------------------------------------------
+// A hold vanishes after five minutes, which is right for a queue and wrong for
+// everything else. Without this screen the overrides are logged for nobody, and
+// nobody can judge whether the thing is worth keeping installed.
+
+const OUTCOME_WORDS = {
+  blocked: "Stopped", needs_approval: "Held for you", cool_off: "Paused",
+  approved: "You allowed it", declined: "You stopped it",
+  overridden: "Continued anyway", reported: "Reported",
+};
+
+function when(iso) {
+  const then = new Date(iso);
+  const mins = Math.round((Date.now() - then) / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins} min ago`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `${hours} hr ago`;
+  return then.toLocaleDateString(undefined, { weekday: "short", hour: "numeric" });
+}
+
+async function loadHistory() {
+  let data;
+  try {
+    data = await api("/history");
+  } catch {
+    $("history").innerHTML = `<div class="empty"><strong>Not connected</strong>
+      Start NoScam on the computer it protects.</div>`;
+    return;
+  }
+
+  const s = data.summary;
+  $("history-summary").innerHTML = `
+    <h2>This week</h2>
+    <div class="counts">
+      <div><b>${s.stopped}</b><span>stopped</span></div>
+      <div><b>${s.approved}</b><span>you allowed</span></div>
+      <div><b>${s.overridden}</b><span>continued anyway</span></div>
+    </div>
+    ${s.overridden ? `<p class="meta" style="margin-top:14px">Someone pressed
+      "continue anyway" ${s.overridden} time${s.overridden === 1 ? "" : "s"}. That is
+      always allowed, and always written down — worth a conversation, not an alarm.</p>` : ""}`;
+
+  $("history").innerHTML = data.items.length
+    ? `<div class="card">${data.items.map((item) => `
+        <div class="event">
+          <div class="when">${when(item.at)}</div>
+          <div class="what">
+            <b>${OUTCOME_WORDS[item.outcome] || item.outcome}</b>
+            <span>${[item.what, item.host, item.amount ? money(item.amount) : "",
+                     item.payee].filter(Boolean).join(" · ")}</span>
+          </div>
+        </div>`).join("")}</div>`
+    : `<div class="empty"><strong>Nothing yet</strong>
+         Everything NoScam does will be listed here.</div>`;
+}
+
 // --- getting the share sheet -----------------------------------------------
 // Pasting works everywhere and needs no setup, so it stays the main path. But
 // two taps from inside WhatsApp beats switching apps and pasting, and the only
@@ -228,9 +286,37 @@ if (shared) {
 
 // --- limits ----------------------------------------------------------------
 
+// First run says nothing at all, which is the worst possible thing for a
+// security tool to say: the person cannot tell it from broken. So until the
+// household has answered two questions, that is what the first screen asks.
+function offerSetup(household) {
+  const unconfigured = !household.known_payees.length
+    && household.limits.guardian_name === "your guardian";
+  $("setup-card").hidden = !unconfigured;
+  if (!unconfigured) return;
+  $("setup-save").onclick = async () => {
+    const guardian = $("setup-guardian").value.trim();
+    const payees = $("setup-payees").value.split(/[,\n]/).map((n) => n.trim()).filter(Boolean);
+    if (guardian) {
+      await api("/limits", { ...household.limits, guardian_name: guardian }, "PUT");
+    }
+    if (payees.length) await api("/household/payees", { payees });
+    toast("Set up.");
+    loadHousehold();
+  };
+}
+
 async function loadHousehold() {
   const household = await api("/household");
   const limits = household.limits;
+  offerSetup(household);
+  const wellLine = $("all-well-line");
+  if (wellLine) {
+    wellLine.textContent =
+      `Payments over ${money(limits.per_transaction_cap)} need ${limits.guardian_name}. `
+      + `${household.known_payees.length} people you already pay go through without asking. `
+      + `Remote-control software is ${limits.block_remote_access ? "blocked" : "allowed"}.`;
+  }
   guardianName = limits.guardian_name;
   $("household-line").textContent = `${limits.guardian_name} approves`;
   $("l-per").textContent = money(limits.per_transaction_cap);

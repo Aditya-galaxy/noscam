@@ -136,7 +136,11 @@ happened" survives the argument afterwards.
 - **`extension/`** — Chrome MV3. Provenance from `webNavigation`, remote-access
   downloads cancelled via `downloads.cancel`, and an overlay that explains
   rather than scolds. The same content script runs standalone for the demo.
-- **`web/`** — the phone: approvals, link checking, limits. Paste a link
+- **`web/`** — the phone: approvals, **history**, link checking, limits. The
+  history is what makes an override mean something: it is logged either way,
+  but until somebody can see it, logging it was decoration. First run asks two
+  questions — who gets asked, and who you already pay — because a security tool
+  that says nothing on day one cannot be told apart from a broken one. Paste a link
   anywhere; on Android, add it to the home screen and it joins the Share menu,
   so a suspicious link is two taps from inside WhatsApp. Intercepting the tap
   itself needs a native app — see [LIMITATIONS.md](LIMITATIONS.md), which says
@@ -228,7 +232,7 @@ it at the person rather than the agent, and measuring the friction it costs.
 ## Tests
 
 ```bash
-python3 -m pytest -q      # 101: the gate's truth table, approval replay,
+python3 -m pytest -q      # 110: the gate's truth table, approval replay,
                           # link signals, SSRF refusals, audit tampering,
                           # and the model's leash
 python3 eval/score.py     # the two-axis scorecard
