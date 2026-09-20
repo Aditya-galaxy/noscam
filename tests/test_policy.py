@@ -350,3 +350,24 @@ def test_a_gift_card_code_is_treated_as_something_you_cannot_get_back() -> None:
         from_message(), LIMITS, now=NOW,
     )
     assert decision.disposition is Disposition.BLOCKED
+
+
+def test_approving_a_collect_request_is_treated_as_paying() -> None:
+    decision = decide(
+        Action(type=ActionType.UPI_COLLECT_APPROVAL, host="upi", amount=9_500,
+               payee="refund.dept@okaxis"),
+        from_message(), LIMITS, now=NOW,
+    )
+    assert decision.disposition is Disposition.BLOCKED
+    assert decision.reason_code == "upi_collect_after_message"
+    assert "never needs your approval" in decision.detail
+
+
+def test_a_collect_request_you_were_expecting_still_gets_a_second_look() -> None:
+    decision = decide(
+        Action(type=ActionType.UPI_COLLECT_APPROVAL, host="upi", amount=200,
+               payee="chai.shop@oksbi"),
+        typed_myself(), LIMITS, now=NOW,
+    )
+    assert decision.disposition is Disposition.NEEDS_APPROVAL
+    assert decision.reason_code == "upi_collect_request"

@@ -302,11 +302,15 @@
       // What kind of money movement this really is. Both of these leave in a
       // way a bank cannot reverse, so they are not ordinary payments.
       let kind = "payment";
+      const page = form.innerText + " " + document.title;
       if (CRYPTO_ADDRESS.test(payee) || CRYPTO_ADDRESS.test(form.innerText)) {
         kind = "crypto_transfer";
-      } else if (GIFT_CARD_WORDS.test(form.innerText) ||
-                 GIFT_CARD_WORDS.test(document.title)) {
+      } else if (GIFT_CARD_WORDS.test(page)) {
         kind = "gift_card_purchase";
+      } else if (COLLECT_WORDS.test(page) &&
+                 (UPI_INTENT.test(payee) || UPI_INTENT.test(page))) {
+        // Approving a request is paying, however the page words it.
+        kind = "upi_collect_approval";
       }
       guard({
         type: kind,
@@ -354,6 +358,8 @@
   };
 
   const GIFT_CARD_WORDS = /(gift\s?card|e-?gift|apple\s?card|google\s?play\s?(card|code)|steam\s?(card|wallet)|amazon\s?(gift|claim\s?code)|itunes)/i;
+  const UPI_INTENT = /upi:\/\/pay\?|[\w.\-]{3,}@(oksbi|okaxis|okhdfcbank|okicici|ybl|ibl|axl|paytm|upi)\b/i;
+  const COLLECT_WORDS = /(collect\s?request|approve\s?(the\s?)?request|accept\s?(the\s?)?request|enter\s?(your\s?)?upi\s?pin|scan.{0,24}(receive|refund|prize|credit))/i;
   const CRYPTO_ADDRESS = /\b(0x[a-fA-F0-9]{40}|[13][a-km-zA-HJ-NP-Z1-9]{25,34}|bc1[a-z0-9]{25,62}|T[A-Za-z1-9]{33})\b/;
 
   const sensitiveKind = (raw) => {

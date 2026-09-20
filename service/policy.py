@@ -50,6 +50,7 @@ class ActionType(str, Enum):
     SENSITIVE_DATA_ENTRY = "sensitive_data_entry"
     GIFT_CARD_PURCHASE = "gift_card_purchase"
     CRYPTO_TRANSFER = "crypto_transfer"
+    UPI_COLLECT_APPROVAL = "upi_collect_approval"
 
     @property
     def is_payment(self) -> bool:
@@ -282,6 +283,32 @@ def decide(
             headline="Crypto can't be reversed",
             detail=(f"You're sending cryptocurrency to {where}. There is no way to undo "
                     f"it, so it needs a second pair of eyes."),
+            release="approval",
+            evidence=evidence,
+        )
+
+    # 4e. A UPI collect request. The scam works because the victim believes they
+    #     are accepting money: a refund, a prize, a deposit. UPI has no such
+    #     flow — approving a request, with your own PIN, only ever sends money
+    #     out. Naming that is usually enough on its own.
+    if action.type is ActionType.UPI_COLLECT_APPROVAL:
+        who = action.payee or "whoever sent this"
+        money_out = (f"Approving this sends {_money(action.amount, limits)} to {who}. "
+                     f"Money arriving in your account never needs your approval or "
+                     f"your PIN — only money leaving does.")
+        if tainted:
+            return Decision(
+                disposition=Disposition.BLOCKED,
+                reason_code="upi_collect_after_message",
+                headline="This request takes money, it doesn't send it",
+                detail=f"{money_out} And {arrival}.",
+                evidence=evidence,
+            )
+        return Decision(
+            disposition=Disposition.NEEDS_APPROVAL,
+            reason_code="upi_collect_request",
+            headline="This request takes money, it doesn't send it",
+            detail=money_out,
             release="approval",
             evidence=evidence,
         )

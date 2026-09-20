@@ -26,8 +26,9 @@ arrived through a message authorise something irreversible.**
 | | |
 |---|---|
 | **Limits what can happen** | Per-payment and daily caps, a cooling period for first-time payees, remote-control software refused outright. Set once by whoever is calmest. |
-| **Stops the moment of loss** | A payment, a one-time code, a password or an install is checked against *how you got there*. Reached from a message? It is held until a second person on another device says yes, or a timer runs out. |
-| **Checks links, with reasons** | Lookalike domains, brand names that aren't in the domain, punycode, shorteners that land somewhere else, pages asking for passwords, installers. Every finding in plain words. Reporting one protects the whole household. |
+| **Stops the moment of loss** | Every way money and access actually leave: a transfer, a one-time code, a password, an install, **gift cards**, **crypto**, a **UPI collect request**, and identity numbers — each checked against *how you got there*. |
+| **Catches the fake page as it opens** | When a message sent you somewhere whose address gives it away, before anything is typed. |
+| **Checks links, with reasons** | Lookalike domains, brand names that aren't in the domain, punycode, shorteners that land somewhere else, pages asking for passwords, installers — and `upi://` requests, decoded to say which way the money goes. |
 
 The decision is deterministic. A language model writes one sentence of advice
 and has no other power — see [The model's leash](#the-models-leash).
@@ -38,17 +39,19 @@ Stopping every scam is easy if you are willing to stop everything, so the cost
 is measured in the same table as the benefit. `python3 eval/score.py`:
 
 ```
-Scams stopped                      10/10
-Ordinary actions left alone        8/10
-Ordinary actions delayed           2/10
-Ordinary actions wrongly stopped   0/10
+Scams stopped                        16/16
+Ordinary actions left alone          10/14
+Ordinary actions slowed down         4/14
+Ordinary actions refused outright    0/14
 
-Ordinary actions that were delayed (the cost this household pays):
+Ordinary actions that were slowed down (the cost this household pays):
   ~ A message from your son, paying him back
   ~ Paying the plumber for the first time
+  ~ Buying crypto you decided to buy
+  ~ Accepting a collect request from the tea shop you use
 ```
 
-Twenty hand-written situations are a regression test, not a measured accuracy
+Thirty hand-written situations are a regression test, not a measured accuracy
 claim. A real number needs real households, and nobody has used this in one yet.
 
 ## Run it
@@ -90,7 +93,11 @@ works and the deterministic explanation is what you see.
 - **`service/policy.py`** — the gate. A pure function with four dispositions,
   ordered by severity, each carrying a sentence the person can check against
   their own memory: *"you arrived here from WhatsApp 40 seconds ago."*
-- **`service/links.py`** — link signals, each with a named reason.
+- **`service/links.py`** — link signals, each with a named reason, including
+  `upi://` requests decoded into which way the money moves. That is the whole of
+  the collect-request scam: the victim is told a refund is arriving, and
+  approving it with their own PIN sends money out. UPI has no flow in which
+  receiving needs your approval.
 - **`service/audit.py`** — a SHA-256 chained log of every decision, approval and
   override. After a scam, "what actually happened" has an answer.
 - **`extension/`** — Chrome MV3. Provenance from `webNavigation`, remote-access
@@ -106,6 +113,11 @@ works and the deterministic explanation is what you see.
   link-local or reserved; only http and https; every redirect hop is re-checked;
   bodies are capped. (Recent audits found ~37% of public MCP servers vulnerable
   to exactly this. Not repeating it is part of the product.)
+- **A refusal is not a request.** Gift cards, one-time codes, identity numbers
+  and remote-access tools are refused, and no screen offers to approve one —
+  pressuring the guardian instead is simply the next move in the same script.
+  Only the cases where a second opinion is the designed way through can be
+  approved at all.
 - **An approval is bound to one action.** It carries a fingerprint of host,
   action, amount and payee, expires in five minutes and cannot be given twice —
   so a nod for a small payment cannot be stretched to cover a large one.
@@ -142,7 +154,7 @@ it at the person rather than the agent, and measuring the friction it costs.
 ## Tests
 
 ```bash
-python3 -m pytest -q      # 58: the gate's truth table, approval replay,
+python3 -m pytest -q      # 82: the gate's truth table, approval replay,
                           # link signals, SSRF refusals, audit tampering,
                           # and the model's leash
 python3 eval/score.py     # the two-axis scorecard

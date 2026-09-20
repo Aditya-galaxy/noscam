@@ -104,3 +104,37 @@ def test_an_unsafe_target_is_reported_rather_than_fetched() -> None:
     assert verdict.verdict == "dangerous"
     assert "unsafe_target" in {s.code for s in verdict.signals}
     assert verdict.fetch_error
+
+
+# --------------------------------------------------------------------------- #
+# UPI collect requests: which way does the money actually go?
+# --------------------------------------------------------------------------- #
+
+def test_a_upi_request_is_explained_as_money_leaving() -> None:
+    """The whole collect-request scam is the victim believing they are being
+    paid. UPI has no flow where receiving needs your approval."""
+    verdict = check_url("upi://pay?pa=plumber@oksbi&pn=Plumber&am=2200")
+    assert verdict.kind == "upi"
+    assert verdict.headline == "Check which way this money goes"
+    plain = " ".join(s.plain for s in verdict.signals)
+    assert "sends ₹2200 from your account" in plain
+    assert "never needs your approval" in plain
+
+
+def test_a_blank_amount_makes_a_upi_request_dangerous() -> None:
+    verdict = check_url("upi://pay?pa=refund.dept@okaxis&pn=Refund&am=")
+    assert verdict.verdict == "dangerous"
+    assert verdict.headline == "Don't approve this"
+    assert "upi_open_amount" in {s.code for s in verdict.signals}
+
+
+def test_a_upi_request_claiming_to_be_a_bank_is_checked_against_the_handle() -> None:
+    verdict = check_url("upi://pay?pa=refund.dept@okaxis&pn=HDFC%20Bank%20Refund&am=9500")
+    signal = next(s for s in verdict.signals if s.code == "upi_payee_mismatch")
+    assert "HDFC Bank" in signal.plain and "refund.dept@okaxis" in signal.plain
+
+
+def test_an_ordinary_upi_payment_is_not_called_dangerous() -> None:
+    """Paying someone on UPI is ordinary life; only a blank amount or a payee
+    who isn't who they claim raises it."""
+    assert check_url("upi://pay?pa=plumber@oksbi&pn=Plumber&am=2200").verdict == "suspicious"

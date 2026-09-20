@@ -386,6 +386,52 @@
         "origin": "typed",
         "seconds_ago": 30
       }
+    },
+    {
+      "name": "UPI collect request dressed up as a refund",
+      "kind": "scam",
+      "source": "India: approving a request sends money; victims are told it receives",
+      "action": {
+        "type": "upi_collect_approval",
+        "host": "upi",
+        "amount": 9500,
+        "payee": "refund.dept@okaxis"
+      },
+      "provenance": {
+        "origin": "link",
+        "source_host": "web.whatsapp.com",
+        "seconds_ago": 25
+      }
+    },
+    {
+      "name": "'Scan this QR to receive your prize'",
+      "kind": "scam",
+      "action": {
+        "type": "upi_collect_approval",
+        "host": "upi",
+        "amount": 25000,
+        "payee": "lucky.draw@ybl"
+      },
+      "provenance": {
+        "origin": "link",
+        "source_host": "web.telegram.org",
+        "seconds_ago": 80
+      }
+    },
+    {
+      "name": "Accepting a collect request from the tea shop you use",
+      "kind": "ordinary",
+      "source": "Legitimate collect requests exist, and still get one question asked",
+      "action": {
+        "type": "upi_collect_approval",
+        "host": "upi",
+        "amount": 200,
+        "payee": "chai.shop@oksbi"
+      },
+      "provenance": {
+        "origin": "typed",
+        "seconds_ago": 15
+      }
     }
   ]
 }

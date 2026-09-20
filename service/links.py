@@ -68,9 +68,16 @@ class LinkVerdict:
     signals: list[Signal] = field(default_factory=list)
     chain: list[str] = field(default_factory=list)
     fetch_error: Optional[str] = None
+    kind: str = "page"          # "page" | "upi"
 
     @property
     def headline(self) -> str:
+        # A UPI request is not a page: "don't open this" would be nonsense
+        # advice about a thing there is nothing to open.
+        if self.kind == "upi":
+            return {"dangerous": "Don't approve this",
+                    "suspicious": "Check which way this money goes",
+                    "no_signals": "Check which way this money goes"}[self.verdict]
         return {
             "dangerous": "Don't open this",
             "suspicious": "Treat this with care",
@@ -82,6 +89,7 @@ class LinkVerdict:
             "url": self.url,
             "final_url": self.final_url,
             "verdict": self.verdict,
+            "kind": self.kind,
             "headline": self.headline,
             "signals": [{"code": s.code, "severity": s.severity, "plain": s.plain}
                         for s in self.signals],
@@ -287,6 +295,67 @@ def _verdict_from(signals: list[Signal]) -> str:
     return "no_signals"
 
 
+# UPI handles look like name@bank. The bank half is the part that can be
+# checked against the name the sender claims to be.
+_BRAND_HANDLES = {
+    "hdfcbank": ("HDFC Bank", ("hdfcbank", "payzapp")),
+    "icicibank": ("ICICI Bank", ("icici", "ibl")),
+    "sbi": ("SBI", ("sbi", "oksbi")),
+    "axisbank": ("Axis Bank", ("axisbank", "axl")),
+    "paytm": ("Paytm", ("paytm", "ptyes", "ptaxis")),
+    "phonepe": ("PhonePe", ("ybl", "ibl", "axl")),
+}
+
+
+def check_upi(raw: str) -> LinkVerdict:
+    """Explain a `upi://pay` request in terms of which way the money goes.
+
+    This is the whole of the collect-request scam: someone sends a request, the
+    victim is told it is a refund or a prize arriving, and approving it — with
+    their own PIN — sends money *out*. UPI has no flow in which receiving money
+    requires your approval or your PIN, so the direction is the entire answer
+    and it can be read straight off the request.
+    """
+    from urllib.parse import parse_qs, urlparse
+
+    parsed = urlparse(raw.strip())
+    params = {k: v[0] for k, v in parse_qs(parsed.query).items() if v}
+    payee = params.get("pa", "")
+    name = params.get("pn", "")
+    amount = params.get("am", "").strip()
+    note = params.get("tn", "")
+
+    signals = [Signal(
+        "upi_sends_money", "medium",
+        (f"Approving this sends {'₹' + amount if amount else 'money'} from your account"
+         f"{' to ' + payee if payee else ''}. Receiving money on UPI never needs your "
+         f"approval or your PIN — only sending does."))]
+
+    if not amount or amount in ("0", "0.00"):
+        signals.append(Signal(
+            "upi_open_amount", "high",
+            "The amount is left blank, so whoever sent this decides how much leaves "
+            "your account when you approve it."))
+
+    handle = payee.split("@")[-1].lower() if "@" in payee else ""
+    claimed = (name + " " + note).lower().replace(" ", "")
+    for brand, (display, handles) in _BRAND_HANDLES.items():
+        if brand in claimed and handle and not any(h in handle for h in handles):
+            signals.append(Signal(
+                "upi_payee_mismatch", "high",
+                f"It says {display} but the money would go to '{payee}', which is not "
+                f"{'an' if display[0] in 'AEIOU' else 'a'} {display} account."))
+            break
+
+    # Paying someone on UPI is ordinary. What makes a request dangerous is a
+    # blank amount or a payee who isn't who the request says they are — so the
+    # direction is always explained, and only those two raise the verdict.
+    serious = any(s.code in ("upi_open_amount", "upi_payee_mismatch") for s in signals)
+    return LinkVerdict(url=raw.strip(), final_url=raw.strip(), kind="upi",
+                       verdict="dangerous" if serious else "suspicious",
+                       signals=signals, chain=[raw.strip()])
+
+
 def normalize_url(raw: str) -> str:
     """People paste 'hdfc-secure.example/login' without a scheme."""
     value = (raw or "").strip()
@@ -301,6 +370,10 @@ def normalize_url(raw: str) -> str:
 
 
 def check_url(raw: str, *, blocklist: Iterable[str] = (), fetch: bool = True) -> LinkVerdict:
+    # A UPI request is not a web page and cannot be judged like one: what
+    # matters is which way the money moves, which the request itself declares.
+    if (raw or "").strip().lower().startswith("upi:"):
+        return check_upi(raw)
     url = normalize_url(raw)
     signals = _static_signals(url, blocklist)
     chain, final_url, error = [url], url, None
