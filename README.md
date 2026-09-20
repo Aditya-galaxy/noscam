@@ -73,6 +73,11 @@ python3 -m pip install -r requirements.txt
 python3 noscam.py
 ```
 
+On macOS you can double-click **`Start NoScam.command`** instead; it installs
+what is missing the first time. `pipx install .` also works — `noscam` then
+starts it from anywhere. What it would take to ship this past people who own a
+terminal is written down in [SHIPPING.md](SHIPPING.md).
+
 That starts the gate, the stand-in messenger and bank, seeds a household and
 opens the first page. Then:
 
@@ -132,6 +137,22 @@ happened" survives the argument afterwards.
   so a suspicious link is two taps from inside WhatsApp. Intercepting the tap
   itself needs a native app — see [LIMITATIONS.md](LIMITATIONS.md), which says
   exactly what that would take on each platform.
+
+### Tested against a page nobody here wrote
+
+The detector was run against **Wikimedia's live donation page** — a real payment
+form built by people who have never heard of this project — and it found two
+bugs worth having:
+
+- The recurring button reads *"Yes, I'll donate $25 each month"*, and the
+  mandate pattern did not match "each month", so a standing instruction would
+  have been waved through as a one-off payment.
+- A payment button with no text at all — an icon — was skipped entirely.
+
+Both are fixed, both are now regression-tested against the exact labels from
+that page (`tests/test_detection_heuristics.py`, which reads the regexes out of
+the shipped JavaScript rather than a copy), and on that page the search and "Go"
+buttons are still correctly left alone.
 
 ### Built for the person it is for
 
@@ -203,7 +224,7 @@ it at the person rather than the agent, and measuring the friction it costs.
 ## Tests
 
 ```bash
-python3 -m pytest -q      # 95: the gate's truth table, approval replay,
+python3 -m pytest -q      # 101: the gate's truth table, approval replay,
                           # link signals, SSRF refusals, audit tampering,
                           # and the model's leash
 python3 eval/score.py     # the two-axis scorecard

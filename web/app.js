@@ -229,7 +229,30 @@ async function loadHousehold() {
   $("guardian").value = limits.guardian_name;
   $("reported").textContent = household.reported_hosts.length
     ? household.reported_hosts.join(", ") : "None yet.";
+
+  const payees = $("payees");
+  payees.innerHTML = household.known_payees.length
+    ? household.known_payees.map((name) => `
+        <div class="payee"><span>${name}</span>
+          <button data-payee="${encodeURIComponent(name)}">Remove</button></div>`).join("")
+    : `<p class="meta">Nobody yet — so every payment will wait the first time.</p>`;
+  for (const button of payees.querySelectorAll("button[data-payee]")) {
+    button.addEventListener("click", async () => {
+      await api(`/household/payees/${button.dataset.payee}`, null, "DELETE");
+      toast("Removed.");
+      loadHousehold();
+    });
+  }
 }
+
+$("add-payee").addEventListener("click", async () => {
+  const name = $("new-payee").value.trim();
+  if (!name) return;
+  await api("/household/payees", { payees: [name] });
+  $("new-payee").value = "";
+  toast("Added.");
+  loadHousehold();
+});
 
 $("save").addEventListener("click", async () => {
   const household = await api("/household");

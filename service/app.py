@@ -505,6 +505,20 @@ def add_payees(payload: PayeesIn,
     return {"known_payees": store.read().household.known_payees}
 
 
+@app.delete("/household/payees/{payee}")
+def forget_payee(payee: str, _: None = Depends(require_trusted_origin)) -> dict[str, Any]:
+    """Stop treating someone as familiar. Removing a payee makes the next
+    payment to them wait again, which is the right direction for a control: the
+    forgetful choice is the safe one."""
+    def mutate(s: State) -> None:
+        s.household.known_payees = [p for p in s.household.known_payees
+                                    if p.strip().lower() != payee.strip().lower()]
+
+    store.update(mutate)
+    audit.record("payee_removed", {"payee": payee})
+    return {"known_payees": store.read().household.known_payees}
+
+
 @app.post("/household/reset")
 def reset_household(_: None = Depends(require_trusted_origin)) -> dict[str, Any]:
     """Clear holds and today's spending, keeping limits and payees. Used to run

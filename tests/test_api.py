@@ -373,3 +373,31 @@ def test_a_page_cannot_bury_the_real_request_under_invented_ones(api) -> None:
     }).json()
     assert flooded["disposition"] == "needs_approval"
     assert "hold_queue_full" in [r["kind"] for r in client.get("/audit/recent?limit=60").json()]
+
+
+def test_a_household_can_say_who_it_already_pays_and_change_its_mind(api) -> None:
+    """Without this, every ordinary payment a real household makes is
+    interrupted the first time — and a tool that does that gets switched off."""
+    client, _ = api
+    client.post("/household/payees", json={"payees": ["Landlord", "Aarav"]})
+    assert client.get("/household").json()["known_payees"] == ["Landlord", "Aarav"]
+
+    ordinary = {
+        "action": {"type": "payment", "host": "bank.example", "amount": 2000,
+                   "payee": "Landlord"},
+        "provenance": {"origin": "typed", "at": just_now()},
+    }
+    assert client.post("/gate/check", json=ordinary).json()["disposition"] == "allow"
+
+    # Forgetting someone makes the next payment to them wait again: the
+    # forgetful direction is the safe one.
+    client.delete("/household/payees/Landlord")
+    assert client.get("/household").json()["known_payees"] == ["Aarav"]
+    assert client.post("/gate/check", json=ordinary).json()["reason_code"] == "new_payee_cooling"
+
+
+def test_a_web_page_cannot_forget_a_payee_for_you(api) -> None:
+    client, _ = api
+    client.post("/household/payees", json={"payees": ["Landlord"]})
+    assert client.delete("/household/payees/Landlord",
+                         headers=SCAM_PAGE).status_code == 403

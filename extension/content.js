@@ -382,15 +382,20 @@
         passThrough = null;
         return;
       }
-      const label = (button.innerText || button.value || button.getAttribute("aria-label") || "");
-      if (!PAY_WORDS.test(label)) return;
-
+      const label = (button.innerText || button.value || button.getAttribute("aria-label")
+                     || button.getAttribute("title") || "");
       const form = button.closest("form");
       const scope = form || document;
       const hasAmount = [...scope.querySelectorAll("input")].some((input) =>
         AMOUNT.test(`${input.name} ${input.id} ${input.placeholder || ""}`) ||
         input.type === "number");
       if (!hasAmount) return;             // a "continue" button on an article is not a payment
+
+      // The label is the usual signal, but plenty of real payment buttons are an
+      // icon with no text at all. A submit button inside a form that takes an
+      // amount is a payment button whatever it says, or doesn't.
+      const submits = button.type === "submit" || button.tagName === "BUTTON" && form;
+      if (!PAY_WORDS.test(label) && !(submits && !label.trim())) return;
 
       event.preventDefault();
       event.stopImmediatePropagation();
@@ -456,7 +461,7 @@
 
   const GIFT_CARD_WORDS = /(gift\s?card|e-?gift|apple\s?card|google\s?play\s?(card|code)|steam\s?(card|wallet)|amazon\s?(gift|claim\s?code)|itunes)/i;
   const UPI_INTENT = /upi:\/\/pay\?|[\w.\-]{3,}@(oksbi|okaxis|okhdfcbank|okicici|ybl|ibl|axl|paytm|upi)\b/i;
-  const MANDATE_WORDS = /(autopay|auto-?debit|e-?mandate|\bmandate\b|standing instruction|recurring payment|subscribe\s?(&|and)\s?pay|every month until|until cancelled)/i;
+  const MANDATE_WORDS = /(autopay|auto-?debit|e-?mandate|\bmandate\b|standing instruction|recurring|subscribe|(each|every|per)\s(month|week|day|year)|monthly|weekly|annually|until cancelled)/i;
   const RECURRENCE = /\b(daily|weekly|fortnightly|monthly|quarterly|yearly|as presented)\b/i;
   const COLLECT_WORDS = /(collect\s?request|approve\s?(the\s?)?request|accept\s?(the\s?)?request|enter\s?(your\s?)?upi\s?pin|scan.{0,24}(receive|refund|prize|credit))/i;
   const CRYPTO_ADDRESS = /\b(0x[a-fA-F0-9]{40}|[13][a-km-zA-HJ-NP-Z1-9]{25,34}|bc1[a-z0-9]{25,62}|T[A-Za-z1-9]{33})\b/;

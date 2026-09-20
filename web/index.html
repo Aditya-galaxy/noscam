@@ -62,6 +62,11 @@
   .limit:last-of-type { border-bottom: 0; }
   .limit span { color: var(--muted); }
   .limit b { font-weight: 600; }
+  .payee { display: flex; justify-content: space-between; align-items: center;
+           padding: 11px 0; border-bottom: 1px solid var(--line); }
+  .payee:last-of-type { border-bottom: 0; }
+  .payee button { background: none; border: 0; color: var(--muted); font: 14px var(--sans);
+                  text-decoration: underline; cursor: pointer; padding: 4px; }
   .save { width: 100%; margin-top: 18px; background: var(--fg); color: #fff; }
   :focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
@@ -137,6 +142,18 @@
       <input id="guardian" type="text" autocomplete="off">
       <button class="action save" id="save">Save</button>
     </div>
+    <div class="card">
+      <h2>People you already pay</h2>
+      <p class="meta">Anyone not on this list waits the first time. Add the
+        people you pay regularly — rent, bills, family — and ordinary payments
+        stop being interrupted.</p>
+      <div id="payees"></div>
+      <label for="new-payee">Add someone</label>
+      <input id="new-payee" type="text" placeholder="Name, exactly as your bank shows it"
+             autocomplete="off">
+      <button class="action save" id="add-payee">Add</button>
+    </div>
+
     <div class="card">
       <h2>Reported sites</h2>
       <p class="meta" id="reported">None yet.</p>
