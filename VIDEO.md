@@ -1,4 +1,38 @@
-# The demo video — word for word
+# The demo video
+
+Two ways to make it. **Your own voice is better if you have twenty calm
+minutes** — judges can hear conviction, and the rules ask that you be able to
+explain your own work. The narrated route exists because a script read badly
+under deadline is worse than one read evenly, and because a take can be redone
+without re-recording the screen.
+
+## The narrated route
+
+```bash
+export GEMINI_API_KEY=…
+python3 video/narrate.py              # → video/out/narration.wav + cues.md
+```
+
+That speaks every line in `video/script.json`, bakes the pause after each one
+into the audio, and writes a cue sheet with the timestamp of every action. Then:
+
+1. Play `video/out/narration.wav` in one ear.
+2. Record the screen **silently** (Cmd-Shift-5 on macOS, QuickTime, or OBS),
+   following `video/out/cues.md`.
+3. `python3 video/assemble.py screen.mov` — muxes the two into
+   `video/out/noscam-demo.mp4`, ready for Devpost and YouTube.
+
+To redo one line after a wording change: `python3 video/narrate.py --only
+the-reason --force`. To try a different voice: `--voice Charon`.
+
+**What is not generated:** the footage. Every frame is the real extension, the
+real gate and the real phone app running on a real machine — which is the part a
+demo video exists to prove, and the part that must not be synthetic. The AI
+disclosure in `SUBMISSION.md` says the narration is synthesised.
+
+---
+
+# The script — word for word
 
 **Target: 3 minutes 45.** The limit is 5, but judges watch these back to back and
 a tight one reads as confidence. Every second is the product actually running:

@@ -142,6 +142,10 @@ Then open http://localhost:8790, click the payment link, and press Transfer.
 
 ## AI disclosure
 
+The demo video's **narration is synthesised** (Gemini text-to-speech, from
+`video/script.json`); every frame of footage is the real product running on a
+real machine, unedited apart from the voice track.
+
 Built with **Claude Code** (Anthropic) as a pair programmer: it wrote code and
 tests to my direction, and I reviewed, corrected and tested everything in the
 repository. **Google Gemini** is a runtime dependency for one line of advice,
