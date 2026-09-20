@@ -42,6 +42,9 @@ class Hold(BaseModel):
     decided_by: Optional[str] = None
     decided_at: Optional[datetime] = None
     release_at: Optional[datetime] = None    # for cool-off holds
+    # False for a refusal: something the household is told about, not asked
+    # about. Nothing on any screen offers to approve one.
+    approvable: bool = True
 
     def is_expired(self, now: datetime) -> bool:
         return self.status == "pending" and now >= self.expires_at
@@ -51,6 +54,7 @@ class Hold(BaseModel):
         return {
             "id": self.id,
             "status": "expired" if self.is_expired(now) else self.status,
+            "approvable": self.approvable,
             "action": self.action,
             "decision": self.decision,
             "arrival": self.provenance.get("arrival", ""),

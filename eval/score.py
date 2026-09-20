@@ -47,7 +47,7 @@ def run_one(scenario: dict) -> tuple[str, str]:
     action = Action(
         type=ActionType(payload["type"]), host=payload.get("host", ""),
         amount=payload.get("amount"), payee=payload.get("payee"),
-        file_name=payload.get("file_name"),
+        file_name=payload.get("file_name"), data_kind=payload.get("data_kind"),
     )
     decision = decide(action, provenance, LIMITS, now=now,
                       spent_today=scenario.get("spent_today", 0.0),
@@ -67,9 +67,9 @@ def main() -> int:
     ordinary = [s for s in scenarios if s["kind"] == "ordinary"]
 
     stopped, got_through = [], []
-    untouched, delayed, obstructed = [], [], []
+    untouched, friction, refused = [], [], []
 
-    print("\n  NoScam — scored on twenty situations\n")
+    print(f"\n  NoScam — scored on {len(scenarios)} situations\n")
     print(f"  {'':2} {'situation':52} {'outcome':18} why")
     print("  " + "─" * 100)
 
@@ -83,37 +83,37 @@ def main() -> int:
             if outcome == "went through":
                 untouched.append(scenario["name"])
                 mark = "✓"
-            elif outcome == "delayed":
-                delayed.append(scenario["name"])
-                mark = "~"
-            else:
-                obstructed.append(scenario["name"])
+            elif outcome == "blocked":
+                refused.append(scenario["name"])
                 mark = "✗"
+            else:
+                friction.append(scenario["name"])
+                mark = "~"
         print(f"  {mark:2} {scenario['name'][:52]:52} {outcome:18} {reason}")
 
     print("\n  " + "─" * 100)
-    print(f"\n  Scams stopped                      {len(stopped)}/{len(scams)}")
-    print(f"  Ordinary actions left alone        {len(untouched)}/{len(ordinary)}")
-    print(f"  Ordinary actions delayed           {len(delayed)}/{len(ordinary)}")
-    print(f"  Ordinary actions wrongly stopped   {len(obstructed)}/{len(ordinary)}")
+    print(f"\n  Scams stopped                        {len(stopped)}/{len(scams)}")
+    print(f"  Ordinary actions left alone          {len(untouched)}/{len(ordinary)}")
+    print(f"  Ordinary actions slowed down         {len(friction)}/{len(ordinary)}")
+    print(f"  Ordinary actions refused outright    {len(refused)}/{len(ordinary)}")
 
     if got_through:
         print("\n  Scams that got through:")
         for name in got_through:
             print(f"    ✗ {name}")
-    if delayed:
-        print("\n  Ordinary actions that were delayed (the cost this household pays):")
-        for name in delayed:
+    if friction:
+        print("\n  Ordinary actions that were slowed down (the cost this household pays):")
+        for name in friction:
             print(f"    ~ {name}")
-    if obstructed:
-        print("\n  Ordinary actions wrongly stopped:")
-        for name in obstructed:
+    if refused:
+        print("\n  Ordinary actions refused outright — these are failures:")
+        for name in refused:
             print(f"    ✗ {name}")
 
-    print("\n  Twenty hand-written situations are a regression test, not a measured\n"
+    print("\n  Hand-written situations are a regression test, not a measured\n"
           "  accuracy claim. A real number needs real households, and nobody has\n"
           "  used this in one yet.\n")
-    return 1 if got_through or obstructed else 0
+    return 1 if got_through or refused else 0
 
 
 if __name__ == "__main__":

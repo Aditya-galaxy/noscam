@@ -3,73 +3,103 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0b1220">
+<meta name="theme-color" content="#08080a">
 <link rel="manifest" href="manifest.webmanifest">
 <title>NoScam</title>
 <style>
+  /* Monochrome, glass, rigid. The colour of a decision is never a hue here —
+     it is weight and contrast — because a red banner is the one thing every
+     scam page already imitates. */
   :root {
-    color-scheme: light;
-    --ink: #101a28; --muted: #5c6a7d; --line: #e4e9f0; --bg: #f5f7fa;
-    --blue: #0b5cff; --red: #c62828; --amber: #8a5a00; --amber-bg: #fff4d6;
-    --green: #1c6b3f;
+    color-scheme: dark;
+    --ink: #08080a; --panel: rgba(22, 22, 26, .72); --line: rgba(255,255,255,.14);
+    --text: #f4f4f5; --dim: #a1a1aa; --faint: #71717a; --paper: #ffffff;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+    --sans: ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif;
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  body { margin: 0; background: var(--bg); color: var(--ink);
-         font: 17px/1.55 -apple-system, "Segoe UI", Roboto, sans-serif; }
-  header { background: #0b1220; color: #fff; padding: 18px 20px 16px; }
-  header h1 { margin: 0; font-size: 20px; letter-spacing: .2px; }
-  header p { margin: 4px 0 0; font-size: 13px; opacity: .75; }
-  nav { display: flex; background: #fff; border-bottom: 1px solid var(--line);
-        position: sticky; top: 0; z-index: 5; }
-  nav button { flex: 1; padding: 14px 8px; font: inherit; font-size: 15px; font-weight: 600;
-               background: none; border: 0; border-bottom: 3px solid transparent;
-               color: var(--muted); cursor: pointer; }
-  nav button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--blue); }
-  main { padding: 18px 16px 60px; max-width: 560px; margin: 0 auto; }
+  body {
+    margin: 0; background: var(--ink); color: var(--text); font: 17px/1.5 var(--sans);
+    background-image:
+      radial-gradient(60vw 40vh at 80% -10%, rgba(255,255,255,.10), transparent 70%),
+      radial-gradient(50vw 35vh at 0% 5%, rgba(255,255,255,.06), transparent 70%),
+      linear-gradient(transparent 95%, rgba(255,255,255,.035) 95%),
+      linear-gradient(90deg, transparent 95%, rgba(255,255,255,.035) 95%);
+    background-size: auto, auto, 32px 32px, 32px 32px;
+    background-attachment: fixed;
+    min-height: 100vh;
+  }
+  header { padding: 22px 20px 16px; border-bottom: 1px solid var(--line); }
+  header h1 { margin: 0; font-size: 20px; font-weight: 650; letter-spacing: .34em;
+              text-transform: uppercase; }
+  header p { margin: 8px 0 0; font: 11px/1 var(--mono); letter-spacing: .18em;
+             text-transform: uppercase; color: var(--dim); }
+  nav { display: flex; border-bottom: 1px solid var(--line); position: sticky; top: 0;
+        z-index: 5; background: rgba(8,8,10,.72); backdrop-filter: blur(20px) saturate(140%);
+        -webkit-backdrop-filter: blur(20px) saturate(140%); }
+  nav button { flex: 1; padding: 15px 8px; font: 600 11px/1 var(--mono); letter-spacing: .16em;
+               text-transform: uppercase; background: none; border: 0;
+               border-bottom: 2px solid transparent; color: var(--faint); cursor: pointer; }
+  nav button[aria-selected="true"] { color: var(--paper); border-bottom-color: var(--paper); }
+  main { padding: 18px 16px 64px; max-width: 560px; margin: 0 auto; }
   section[hidden] { display: none; }
-  .card { background: #fff; border: 1px solid var(--line); border-radius: 14px;
-          padding: 18px; margin-bottom: 14px; }
-  .badge { display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: .4px;
-           text-transform: uppercase; padding: 5px 10px; border-radius: 999px;
-           background: var(--amber-bg); color: var(--amber); }
-  .card h2 { font-size: 19px; margin: 12px 0 6px; }
-  .card p { margin: 0 0 8px; color: #24324a; }
-  .meta { font-size: 14px; color: var(--muted); }
-  .row { display: flex; gap: 10px; margin-top: 16px; }
-  button.action { flex: 1; font: inherit; font-size: 17px; font-weight: 600; padding: 14px;
-                  border-radius: 10px; border: 0; cursor: pointer; }
-  .approve { background: var(--blue); color: #fff; }
-  .deny { background: #fdecea; color: var(--red); }
-  .empty { text-align: center; color: var(--muted); padding: 40px 20px; }
-  .empty strong { display: block; font-size: 18px; color: var(--ink); margin-bottom: 6px; }
-  input[type="url"], input[type="text"], input[type="number"] {
-    width: 100%; padding: 14px; font: inherit; border: 1px solid #cfd6e4; border-radius: 10px;
-    background: #fff; }
-  label { display: block; font-size: 14px; font-weight: 600; margin: 14px 0 6px; color: #44506a; }
-  .verdict { border-radius: 12px; padding: 16px; margin-top: 16px; }
-  .verdict.dangerous { background: #fdecea; color: #8e2a20; }
-  .verdict.suspicious { background: var(--amber-bg); color: var(--amber); }
-  .verdict.no_signals { background: #e7f6ec; color: var(--green); }
-  .verdict h3 { margin: 0 0 8px; font-size: 19px; }
-  .signals { margin: 10px 0 0; padding-left: 20px; }
-  .signals li { margin-bottom: 6px; font-size: 15px; }
-  .chain { font-size: 13px; color: var(--muted); margin-top: 10px; word-break: break-all; }
-  .limit { display: flex; justify-content: space-between; align-items: center;
-           padding: 12px 0; border-bottom: 1px solid var(--line); }
-  .limit:last-child { border-bottom: 0; }
-  .limit span { font-size: 15px; color: var(--muted); }
-  .limit b { font-size: 17px; }
-  .save { width: 100%; margin-top: 18px; background: var(--ink); color: #fff; }
-  .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: 24px;
-           background: #101a28; color: #fff; padding: 12px 18px; border-radius: 10px;
-           font-size: 15px; opacity: 0; transition: opacity .2s; pointer-events: none; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 4px;
+          backdrop-filter: blur(26px) saturate(140%);
+          -webkit-backdrop-filter: blur(26px) saturate(140%);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 24px 60px rgba(0,0,0,.45);
+          margin-bottom: 14px; overflow: hidden; }
+  .card .bar { display: flex; justify-content: space-between; padding: 11px 18px;
+               border-bottom: 1px solid var(--line); font: 600 10px/1 var(--mono);
+               letter-spacing: .2em; text-transform: uppercase; color: var(--dim); }
+  .card .body { padding: 20px 18px; }
+  .card h2 { font-size: 21px; line-height: 1.2; letter-spacing: -.01em; margin: 0 0 8px; }
+  .card p { margin: 0 0 10px; color: #d4d4d8; }
+  .meta { font: 11px/1.6 var(--mono); letter-spacing: .09em; text-transform: uppercase;
+          color: var(--faint); }
+  .row { display: flex; gap: 10px; margin-top: 18px; }
+  button.action { flex: 1; font: 600 13px/1 var(--sans); letter-spacing: .08em;
+                  text-transform: uppercase; padding: 15px 12px; border-radius: 2px;
+                  border: 1px solid transparent; cursor: pointer; }
+  .approve { background: var(--paper); color: #09090b; }
+  .deny { background: transparent; color: var(--text); border-color: rgba(255,255,255,.34); }
+  .empty { text-align: center; color: var(--faint); padding: 56px 20px; border: 1px dashed var(--line);
+           border-radius: 4px; }
+  .empty strong { display: block; font: 600 12px/1 var(--mono); letter-spacing: .2em;
+                  text-transform: uppercase; color: var(--text); margin-bottom: 10px; }
+  label { display: block; font: 600 10px/1 var(--mono); letter-spacing: .18em;
+          text-transform: uppercase; margin: 16px 0 8px; color: var(--dim); }
+  input { width: 100%; padding: 14px; font: 16px/1.4 var(--mono); color: var(--text);
+          background: rgba(0,0,0,.35); border: 1px solid var(--line); border-radius: 2px; }
+  input:focus { outline: none; border-color: rgba(255,255,255,.55); }
+  .verdict { border: 1px solid var(--line); border-left-width: 3px; border-radius: 2px;
+             padding: 16px; margin-top: 18px; background: rgba(0,0,0,.28); }
+  .verdict.dangerous { border-left-color: var(--paper); }
+  .verdict.suspicious { border-left-color: rgba(255,255,255,.55); }
+  .verdict.no_signals { border-left-color: rgba(255,255,255,.22); }
+  .verdict h3 { margin: 0 0 10px; font: 600 12px/1 var(--mono); letter-spacing: .2em;
+                text-transform: uppercase; }
+  .signals { margin: 0; padding-left: 18px; }
+  .signals li { margin-bottom: 8px; font-size: 15px; color: #d4d4d8; }
+  .chain { font: 11px/1.6 var(--mono); color: var(--faint); margin-top: 12px;
+           word-break: break-all; }
+  .limit { display: flex; justify-content: space-between; align-items: baseline;
+           padding: 13px 0; border-bottom: 1px solid var(--line); }
+  .limit:last-of-type { border-bottom: 0; }
+  .limit span { font: 11px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase;
+                color: var(--dim); }
+  .limit b { font: 17px/1 var(--mono); }
+  .save { width: 100%; margin-top: 20px; background: var(--paper); color: #09090b; }
+  .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: 26px;
+           background: rgba(255,255,255,.96); color: #09090b; padding: 12px 20px;
+           border-radius: 2px; font: 600 11px/1 var(--mono); letter-spacing: .16em;
+           text-transform: uppercase; opacity: 0; transition: opacity .2s; pointer-events: none; }
   .toast.show { opacity: 1; }
 </style>
 </head>
 <body>
 <header>
   <h1>NoScam</h1>
-  <p id="household-line">Watching this household</p>
+  <p id="household-line">connecting</p>
 </header>
 
 <nav role="tablist">
@@ -85,38 +115,40 @@
 
   <section id="tab-link" hidden>
     <div class="card">
-      <h2 style="margin-top:0">Is this link safe?</h2>
-      <p class="meta">Paste anything you were sent. Nothing is opened on your phone —
-        the check happens on your own computer.</p>
-      <label for="url">Link</label>
-      <input id="url" type="url" inputmode="url" placeholder="paste the link here"
-             autocomplete="off" autocapitalize="off" spellcheck="false">
-      <div class="row">
-        <button class="action approve" id="check">Check it</button>
+      <div class="bar"><span>Link check</span><span>address only</span></div>
+      <div class="body">
+        <h2>Is this link safe?</h2>
+        <p class="meta">Nothing is opened on your phone. The check runs on your own computer.</p>
+        <label for="url">Paste the link</label>
+        <input id="url" type="url" inputmode="url" placeholder="https://…"
+               autocomplete="off" autocapitalize="off" spellcheck="false">
+        <div class="row"><button class="action approve" id="check">Check it</button></div>
+        <div id="verdict"></div>
       </div>
-      <div id="verdict"></div>
     </div>
   </section>
 
   <section id="tab-limits" hidden>
     <div class="card">
-      <h2 style="margin-top:0">What can happen without asking</h2>
-      <div class="limit"><span>One payment up to</span><b id="l-per">—</b></div>
-      <div class="limit"><span>All payments in a day</span><b id="l-day">—</b></div>
-      <div class="limit"><span>Spent today</span><b id="l-spent">—</b></div>
-      <div class="limit"><span>New payee waits</span><b id="l-cool">—</b></div>
-      <div class="limit"><span>Remote-control software</span><b id="l-remote">—</b></div>
-      <label for="per">One payment up to (₹)</label>
-      <input id="per" type="number" inputmode="numeric">
-      <label for="day">All payments in a day (₹)</label>
-      <input id="day" type="number" inputmode="numeric">
-      <label for="guardian">Who gets asked</label>
-      <input id="guardian" type="text" autocomplete="off">
-      <button class="action save" id="save">Save limits</button>
+      <div class="bar"><span>Household limits</span><span id="spent-badge">—</span></div>
+      <div class="body">
+        <div class="limit"><span>One payment up to</span><b id="l-per">—</b></div>
+        <div class="limit"><span>All payments per day</span><b id="l-day">—</b></div>
+        <div class="limit"><span>Spent today</span><b id="l-spent">—</b></div>
+        <div class="limit"><span>New payee waits</span><b id="l-cool">—</b></div>
+        <div class="limit"><span>Remote control</span><b id="l-remote">—</b></div>
+        <label for="per">One payment up to</label>
+        <input id="per" type="number" inputmode="numeric">
+        <label for="day">All payments per day</label>
+        <input id="day" type="number" inputmode="numeric">
+        <label for="guardian">Who gets asked</label>
+        <input id="guardian" type="text" autocomplete="off">
+        <button class="action save" id="save">Save limits</button>
+      </div>
     </div>
     <div class="card">
-      <h2 style="margin-top:0">Reported sites</h2>
-      <p class="meta" id="reported">None yet.</p>
+      <div class="bar"><span>Reported sites</span><span>blocked for everyone</span></div>
+      <div class="body"><p class="meta" id="reported">none yet</p></div>
     </div>
   </section>
 </main>

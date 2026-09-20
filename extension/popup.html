@@ -4,41 +4,60 @@
 <meta charset="utf-8">
 <title>NoScam</title>
 <style>
-  :root { color-scheme: light; }
-  body { width: 320px; margin: 0; font: 14px/1.5 -apple-system, "Segoe UI", Roboto, sans-serif;
-         color: #16202e; background: #f5f7fa; }
-  header { background: #0b1220; color: #fff; padding: 14px 16px; }
-  header h1 { margin: 0; font-size: 16px; }
-  header p { margin: 3px 0 0; font-size: 12px; opacity: .75; }
-  main { padding: 14px 16px 18px; }
-  .state { display: flex; align-items: center; gap: 8px; font-weight: 600; margin-bottom: 12px; }
-  .dot { width: 9px; height: 9px; border-radius: 50%; background: #9aa5b5; }
-  .dot.on { background: #1c9e5a; }
-  .dot.off { background: #c62828; }
-  .row { display: flex; justify-content: space-between; padding: 7px 0;
-         border-bottom: 1px solid #e4e9f0; }
+  :root {
+    color-scheme: dark;
+    --ink: #08080a; --line: rgba(255,255,255,.14); --text: #f4f4f5; --dim: #a1a1aa;
+    --faint: #71717a; --paper: #fff;
+    --mono: ui-monospace, "SF Mono", Menlo, monospace;
+    --sans: ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  body { width: 328px; margin: 0; background: var(--ink); color: var(--text);
+         font: 14px/1.5 var(--sans);
+         background-image:
+           radial-gradient(70% 50% at 100% 0%, rgba(255,255,255,.10), transparent 70%),
+           linear-gradient(transparent 95%, rgba(255,255,255,.04) 95%),
+           linear-gradient(90deg, transparent 95%, rgba(255,255,255,.04) 95%);
+         background-size: auto, 28px 28px, 28px 28px; }
+  header { padding: 16px 18px 13px; border-bottom: 1px solid var(--line); }
+  header h1 { margin: 0; font-size: 15px; font-weight: 650; letter-spacing: .34em;
+              text-transform: uppercase; }
+  header p { margin: 7px 0 0; font: 10px/1 var(--mono); letter-spacing: .18em;
+             text-transform: uppercase; color: var(--dim); }
+  main { padding: 16px 18px 20px; }
+  .state { display: flex; align-items: center; gap: 9px; font: 600 10px/1 var(--mono);
+           letter-spacing: .18em; text-transform: uppercase; margin-bottom: 14px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--faint); }
+  .dot.on { background: var(--paper); box-shadow: 0 0 0 3px rgba(255,255,255,.16); }
+  .dot.off { background: transparent; border: 1px solid var(--faint); }
+  .arrival { background: rgba(255,255,255,.06); border: 1px solid var(--line);
+             border-left: 3px solid var(--paper); border-radius: 2px;
+             backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+             padding: 12px 14px; margin: 0 0 16px; font-size: 13px; color: #d4d4d8; }
+  .arrival.clean { border-left-color: rgba(255,255,255,.22); }
+  .row { display: flex; justify-content: space-between; align-items: baseline;
+         padding: 9px 0; border-bottom: 1px solid var(--line); }
   .row:last-of-type { border-bottom: 0; }
-  .row span { color: #5c6a7d; }
-  .arrival { background: #fff4d6; color: #8a5a00; padding: 10px 12px; border-radius: 8px;
-             margin: 12px 0; font-size: 13px; }
-  .arrival.clean { background: #e7f6ec; color: #1c6b3f; }
-  a.button { display: block; text-align: center; margin-top: 12px; padding: 10px;
-             background: #0b5cff; color: #fff; text-decoration: none; border-radius: 8px;
-             font-weight: 600; }
-  .muted { color: #7b8496; font-size: 12px; margin-top: 12px; }
+  .row span { font: 10px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase;
+              color: var(--dim); }
+  .row b { font: 14px/1 var(--mono); }
+  a.button { display: block; text-align: center; margin-top: 16px; padding: 13px;
+             background: var(--paper); color: #09090b; text-decoration: none;
+             border-radius: 2px; font: 600 11px/1 var(--sans); letter-spacing: .12em;
+             text-transform: uppercase; }
+  .muted { color: var(--faint); font-size: 11px; margin: 14px 0 0; }
 </style>
 </head>
 <body>
 <header>
   <h1>NoScam</h1>
-  <p id="sub">Checking…</p>
+  <p id="sub">checking</p>
 </header>
 <main>
-  <div class="state"><span class="dot" id="dot"></span><span id="status">Connecting…</span></div>
+  <div class="state"><span class="dot" id="dot"></span><span id="status">connecting</span></div>
   <div class="arrival" id="arrival">Working out how you reached this page…</div>
   <div id="limits"></div>
   <a class="button" href="http://127.0.0.1:8787/app/" target="_blank">Open on your phone</a>
-  <p class="muted">Everything is decided on this computer. Nothing about your
+  <p class="muted">Every decision is made on this computer. Nothing about your
     payments leaves it.</p>
 </main>
 <script src="popup.js"></script>

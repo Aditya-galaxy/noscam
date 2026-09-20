@@ -20,16 +20,16 @@ chrome.runtime.sendMessage({ kind: "noscam:state" }, (reply) => {
 
   if (!reply || !reply.ok) {
     dot.className = "dot off";
-    status.textContent = "Not running";
-    document.getElementById("sub").textContent = "Start it on this computer";
+    status.textContent = "not running";
+    document.getElementById("sub").textContent = "start it on this computer";
     arrival.textContent = "NoScam can't check anything until the service is running.";
     return;
   }
 
   const { household, provenance } = reply.data;
   dot.className = "dot on";
-  status.textContent = "Watching this computer";
-  document.getElementById("sub").textContent = `${household.limits.guardian_name} approves`;
+  status.textContent = "watching this computer";
+  document.getElementById("sub").textContent = `${household.limits.guardian_name} approves`.toLowerCase();
 
   const source = provenance && provenance.source_host;
   const friendly = source && MESSAGING[source.toLowerCase()];

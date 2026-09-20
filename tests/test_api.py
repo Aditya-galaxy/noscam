@@ -200,3 +200,84 @@ def test_pairing_needs_the_code_from_the_other_device(api) -> None:
     assert client.post("/pair/claim", json={"code": code, "device": "Chrome"}).json()["paired"]
     # Single use: the code is spent.
     assert client.post("/pair/claim", json={"code": code}).status_code == 403
+
+
+def test_a_phishing_page_from_a_message_is_held_on_arrival(api) -> None:
+    client, _ = api
+    body = client.post("/gate/arrival", json={
+        "url": "https://hdfcbank.secure-verify.example/login",
+        "provenance": {"origin": "link", "source_host": "web.whatsapp.com", "at": just_now()},
+    }).json()
+    assert body["disposition"] == "blocked"
+    assert body["reason_code"] == "phishing_page_after_message"
+    assert body["hold_id"]
+
+    # It is the household's record, not just a banner: the phone sees it too.
+    assert any(h["id"] == body["hold_id"] for h in client.get("/holds").json())
+
+
+def test_an_ordinary_page_is_not_interrupted_on_arrival(api) -> None:
+    client, _ = api
+    body = client.post("/gate/arrival", json={
+        "url": "https://hdfcbank.com/netbanking",
+        "provenance": {"origin": "typed", "at": just_now()},
+    }).json()
+    assert body["disposition"] == "allow"
+    assert body["hold_id"] is None
+
+
+def test_card_numbers_are_refused_on_a_page_a_message_sent_you_to(api) -> None:
+    client, _ = api
+    body = client.post("/gate/check", json={
+        "action": {"type": "sensitive_data_entry", "host": "kyc-update.example",
+                   "data_kind": "card number"},
+        "provenance": {"origin": "link", "source_host": "web.whatsapp.com", "at": just_now()},
+    }).json()
+    assert body["disposition"] == "blocked"
+    assert "card number" in body["headline"]
+
+
+def test_a_refusal_cannot_be_approved_by_anyone(api) -> None:
+    """A one-time code on a page a message sent you to is refused, not
+    requested. A guardian being pressured on their own phone is the next move
+    in the same script, so there is no button for it."""
+    client, _ = api
+    body = client.post("/gate/check", json={
+        "action": {"type": "otp_entry", "host": "hdfc-secure.example"},
+        "provenance": {"origin": "link", "source_host": "web.whatsapp.com", "at": just_now()},
+    }).json()
+    assert body["disposition"] == "blocked"
+
+    hold_id = body["hold_id"]
+    assert client.get(f"/holds/{hold_id}").json()["approvable"] is False
+    refused = client.post(f"/holds/{hold_id}/decision", json={"verdict": "approve"})
+    assert refused.status_code == 409
+
+    # And the gate does not honour an approval even if one were forged in.
+    from service.store import State
+
+    def approve(state: State) -> None:
+        state.holds[hold_id].status = "approved"
+
+    import importlib
+    import service.app as module
+    importlib.reload  # keep the reference honest; store is the live one
+    module.store.update(approve)
+    again = client.post("/gate/check", json={
+        "action": {"type": "otp_entry", "host": "hdfc-secure.example"},
+        "provenance": {"origin": "link", "source_host": "web.whatsapp.com", "at": just_now()},
+    }).json()
+    assert again["disposition"] == "blocked"
+
+
+def test_a_guardian_can_let_a_waiting_payment_through_early(api) -> None:
+    """The cooling period exists so somebody can think. If the somebody has
+    thought, it has done its job."""
+    client, _ = api
+    first = client.post("/gate/check", json={
+        "action": {"type": "payment", "host": "bank.example", "amount": 2200,
+                   "payee": "Plumber"},
+        "provenance": {"origin": "typed", "at": just_now()},
+    }).json()
+    assert first["disposition"] == "cool_off"
+    assert client.get(f"/holds/{first['hold_id']}").json()["approvable"] is True

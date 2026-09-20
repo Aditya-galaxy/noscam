@@ -47,6 +47,9 @@ class ActionType(str, Enum):
     CREDENTIAL_ENTRY = "credential_entry"
     REMOTE_ACCESS_DOWNLOAD = "remote_access_download"
     APP_INSTALL_FILE = "app_install_file"
+    SENSITIVE_DATA_ENTRY = "sensitive_data_entry"
+    GIFT_CARD_PURCHASE = "gift_card_purchase"
+    CRYPTO_TRANSFER = "crypto_transfer"
 
     @property
     def is_payment(self) -> bool:
@@ -89,6 +92,9 @@ class Action:
     amount: Optional[float] = None
     payee: Optional[str] = None
     file_name: Optional[str] = None
+    # "card number", "Aadhaar number", "PAN". The value never leaves the page:
+    # the page tells NoScam what kind of thing is being typed, not what it says.
+    data_kind: Optional[str] = None
 
 
 @dataclass(frozen=True)
@@ -104,6 +110,13 @@ class Decision:
     @property
     def stops_the_action(self) -> bool:
         return self.disposition is not Disposition.ALLOW
+
+
+def _sentence(text: str) -> str:
+    """Capitalise the first letter only. `str.capitalize()` lowercases the rest,
+    which turns "WhatsApp" into "whatsapp" — and a product that misspells the
+    app someone is looking at has just told them it doesn't know what it saw."""
+    return text[:1].upper() + text[1:]
 
 
 def _money(amount: Optional[float], limits: Limits) -> str:
@@ -186,7 +199,13 @@ def decide(
 
     # 3. An approval that was granted out of band, on another device, for exactly
     #    this action. Checked by the caller; honoured here.
-    if approved:
+    #
+    #    Only for money leaving, because those are the cases where a second
+    #    opinion is the designed way through. The refusals below — a one-time
+    #    code on a page a message sent you to, gift cards, an identity document
+    #    — are not requests awaiting permission, and a guardian being pressured
+    #    on their own phone is simply the next move in the same script.
+    if approved and (action.type.is_payment or action.type is ActionType.CRYPTO_TRANSFER):
         return Decision(
             disposition=Disposition.ALLOW,
             reason_code="approved_out_of_band",
@@ -207,6 +226,63 @@ def decide(
             detail=(f"This page asked for your {thing}, and {arrival}. "
                     f"That is what a fake bank page looks like. "
                     f"Open your bank yourself instead of using the link."),
+            evidence=evidence,
+        )
+
+    # 4b. Identity documents and card numbers, typed into a page a message sent
+    #     you to. These are not recoverable: a card can be reissued, an Aadhaar
+    #     or PAN number is yours for life and is the raw material for opening
+    #     accounts in someone else's name.
+    if action.type is ActionType.SENSITIVE_DATA_ENTRY and tainted:
+        kind = action.data_kind or "personal details"
+        return Decision(
+            disposition=Disposition.BLOCKED,
+            reason_code="sensitive_data_after_message",
+            headline=f"Don't put your {kind} into this page",
+            detail=(f"This page is collecting your {kind}, and {arrival}. "
+                    f"Real organisations don't ask for it this way, and unlike a "
+                    f"password you can't change it afterwards."),
+            evidence=evidence,
+        )
+
+    # 4c. Gift cards. The FTC has been saying it for years and it is still the
+    #     single clearest tell in the whole business: no government department,
+    #     bank, utility or police force is ever paid in gift cards. Buying one
+    #     as a present is ordinary, so only a message-driven purchase is
+    #     refused — but that refusal needs no second opinion.
+    if action.type is ActionType.GIFT_CARD_PURCHASE and tainted:
+        return Decision(
+            disposition=Disposition.BLOCKED,
+            reason_code="gift_cards_after_message",
+            headline="Nobody legitimate is ever paid in gift cards",
+            detail=(f"Someone messaged you and now you're buying gift cards — {arrival}. "
+                    f"No tax office, bank, police force or utility takes payment this "
+                    f"way. Whoever asked is stealing from you."),
+            evidence=evidence,
+        )
+
+    # 4d. Crypto. Irreversible by design: once it is sent there is no bank, no
+    #     chargeback and no dispute. That is true of a legitimate transfer too,
+    #     which is why a clean one still gets a second pair of eyes.
+    if action.type is ActionType.CRYPTO_TRANSFER:
+        where = action.payee or "that wallet"
+        if tainted:
+            return Decision(
+                disposition=Disposition.BLOCKED,
+                reason_code="crypto_after_message",
+                headline="This money cannot be got back",
+                detail=(f"You're sending cryptocurrency to {where}, and {arrival}. "
+                        f"Crypto has no chargeback and no dispute process — this is "
+                        f"why investment and romance scams ask for it."),
+                evidence=evidence,
+            )
+        return Decision(
+            disposition=Disposition.NEEDS_APPROVAL,
+            reason_code="crypto_needs_second_pair_of_eyes",
+            headline="Crypto can't be reversed",
+            detail=(f"You're sending cryptocurrency to {where}. There is no way to undo "
+                    f"it, so it needs a second pair of eyes."),
+            release="approval",
             evidence=evidence,
         )
 
@@ -260,7 +336,7 @@ def decide(
                 disposition=Disposition.COOL_OFF,
                 reason_code="payment_after_message",
                 headline="Take two minutes",
-                detail=(f"{arrival.capitalize()}. The payment is to {payee}, who you've paid "
+                detail=(f"{_sentence(arrival)}. The payment is to {payee}, who you've paid "
                         f"before, so this is just a pause. If someone is on the phone telling "
                         f"you to hurry, that is the scam."),
                 release="wait",
@@ -292,6 +368,38 @@ def decide(
     )
 
 
+def decide_arrival(
+    *, signal_codes: list[str], verdict: str, provenance: Provenance, host: str,
+    now: datetime, host_reported: bool = False,
+) -> Optional[Decision]:
+    """Judge a page as it opens, before anything has been typed into it.
+
+    Deliberately narrow. A warning on every slightly-odd site is a warning
+    nobody reads, so this fires only when the address itself carries a serious
+    signal *and* a message is what sent the person here — or when the household
+    has already reported the site. Everything else is left to the gate, at the
+    moment something irreversible is actually attempted.
+    """
+    if host_reported:
+        return Decision(
+            disposition=Disposition.BLOCKED,
+            reason_code="reported_page_opened",
+            headline="This is the site you reported",
+            detail=f"Someone in your household marked {host} as a scam.",
+            evidence={"host": host, "signals": signal_codes},
+        )
+    if verdict != "dangerous" or not provenance.is_tainted(now):
+        return None
+    return Decision(
+        disposition=Disposition.BLOCKED,
+        reason_code="phishing_page_after_message",
+        headline="This page is pretending to be someone else",
+        detail=(f"{_sentence(provenance.describe(now))}, and the address itself gives "
+                f"it away. Close it and open the real site yourself."),
+        evidence={"host": host, "signals": signal_codes},
+    )
+
+
 def cool_off_expires(decision: Decision, started: datetime) -> Optional[datetime]:
     if decision.disposition is not Disposition.COOL_OFF:
         return None
@@ -310,5 +418,5 @@ def guardian_line(decision: Decision, limits: Limits) -> str:
 
 __all__ = [
     "Action", "ActionType", "Decision", "Disposition", "Limits",
-    "decide", "cool_off_expires", "guardian_line", "pretty_source",
+    "decide", "decide_arrival", "cool_off_expires", "guardian_line", "pretty_source",
 ]

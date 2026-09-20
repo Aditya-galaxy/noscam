@@ -24,7 +24,7 @@ from .explain import coach
 from .links import check_url
 from .policy import (
     Action, ActionType, Decision, Disposition, Limits, cool_off_expires, decide,
-    guardian_line,
+    decide_arrival, guardian_line,
 )
 from .provenance import Origin, Provenance, normalize_host, utcnow
 from .store import APPROVAL_TTL, Hold, State, Store, new_id, pairing_code
@@ -56,6 +56,7 @@ class ActionIn(BaseModel):
     amount: Optional[float] = None
     payee: Optional[str] = None
     file_name: Optional[str] = None
+    data_kind: Optional[str] = None
 
 
 class CheckIn(BaseModel):
@@ -81,6 +82,7 @@ def fingerprint(action: Action) -> str:
     raw = "|".join([
         action.type.value, normalize_host(action.host), f"{action.amount or 0:.2f}",
         (action.payee or "").strip().lower(), (action.file_name or "").lower(),
+        (action.data_kind or "").lower(),
     ])
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:32]
 
@@ -98,7 +100,8 @@ def _to_action(payload: ActionIn, household) -> Action:
     except ValueError:
         raise HTTPException(status_code=400, detail=f"unknown action type '{payload.type}'")
     return Action(type=action_type, host=payload.host, amount=payload.amount,
-                  payee=payload.payee, file_name=payload.file_name)
+                  payee=payload.payee, file_name=payload.file_name,
+                  data_kind=payload.data_kind)
 
 
 def _to_provenance(payload: ProvenanceIn) -> Provenance:
@@ -191,6 +194,9 @@ def gate_check(payload: CheckIn) -> DecisionOut:
                             "tainted": provenance.is_tainted(now)},
                 expires_at=now + APPROVAL_TTL,
                 release_at=cool_off_expires(decision, now),
+                # A wait can be let through early by the person who would have
+                # been asked anyway; a refusal has no such door.
+                approvable=decision.release is not None,
             )
             hold_id = hold.id
             store.update(lambda s: s.holds.__setitem__(hold.id, hold))
@@ -213,6 +219,57 @@ def gate_check(payload: CheckIn) -> DecisionOut:
         "hold_id": hold_id,
     }, at=now)
     return _decision_out(decision, household.limits, hold_id)
+
+
+class ArrivalIn(BaseModel):
+    url: str
+    provenance: ProvenanceIn = Field(default_factory=ProvenanceIn)
+
+
+@app.post("/gate/arrival", response_model=DecisionOut)
+def gate_arrival(payload: ArrivalIn) -> DecisionOut:
+    """Judge a page the moment it opens, before anything is typed into it.
+
+    Address-only: no request is made to the site, both because it must be
+    instant and because fetching a page the person is already looking at tells
+    us nothing they aren't about to find out anyway.
+    """
+    now = utcnow()
+    household = store.read().household
+    provenance = _to_provenance(payload.provenance)
+    host = normalize_host(payload.url)
+    reported = host in {normalize_host(h) for h in household.reported_hosts}
+
+    try:
+        verdict = check_url(payload.url, blocklist=household.reported_hosts, fetch=False)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="that doesn't look like a page")
+
+    decision = decide_arrival(
+        signal_codes=[s.code for s in verdict.signals], verdict=verdict.verdict,
+        provenance=provenance, host=host, now=now, host_reported=reported,
+    )
+    if decision is None:
+        return _decision_out(
+            Decision(disposition=Disposition.ALLOW, reason_code="ok", headline="",
+                     detail="", evidence={}), household.limits, None)
+
+    hold = Hold(
+        id=new_id("page"), created_at=now,
+        fingerprint=hashlib.sha256(f"arrival|{host}".encode()).hexdigest()[:32],
+        action={"type": "page_opened", "host": host},
+        decision={"disposition": decision.disposition.value,
+                  "reason_code": decision.reason_code,
+                  "headline": decision.headline, "detail": decision.detail},
+        provenance={"arrival": provenance.describe(now), "source": provenance.source_host,
+                    "tainted": provenance.is_tainted(now)},
+        expires_at=now + APPROVAL_TTL,
+        approvable=False,
+    )
+    store.update(lambda st: st.holds.__setitem__(hold.id, hold))
+    audit.record("page_blocked", {"host": host, "reason_code": decision.reason_code,
+                                  "signals": [s.code for s in verdict.signals]}, at=now)
+    return _decision_out(decision, household.limits, hold.id)
 
 
 class HoldDecisionIn(BaseModel):
@@ -249,6 +306,10 @@ def decide_hold(hold_id: str, payload: HoldDecisionIn) -> dict[str, Any]:
         raise HTTPException(status_code=409, detail="that request has expired")
     if hold.status != "pending":
         raise HTTPException(status_code=409, detail=f"already {hold.status}")
+    if not hold.approvable:
+        raise HTTPException(
+            status_code=409,
+            detail="this was refused, not held for permission — nobody can approve it")
     if payload.verdict not in ("approve", "deny"):
         raise HTTPException(status_code=400, detail="verdict must be approve or deny")
 

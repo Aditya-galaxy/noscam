@@ -58,6 +58,17 @@
     if (message.kind === "noscam:hold") {
       return { ok: true, data: await post(`/holds/${message.holdId}`) };
     }
+    if (message.kind === "noscam:arrival") {
+      const referrerHost = sourceHost;
+      return { ok: true, data: await post("/gate/arrival", {
+        url: message.url,
+        provenance: {
+          origin: referrerHost ? "link" : "typed",
+          source_host: referrerHost,
+          at: new Date(Date.now() - Math.round(performance.now())).toISOString(),
+        },
+      }) };
+    }
     if (message.kind === "noscam:advice") {
       return { ok: true, data: await post(`/holds/${message.holdId}/advice`) };
     }
@@ -118,45 +129,66 @@
     root.innerHTML = `
       <style>
         :host { all: initial; }
-        .veil { position: fixed; inset: 0; background: rgba(12, 18, 28, .72);
+        .veil { position: fixed; inset: 0; background: rgba(6, 6, 8, .82);
+                backdrop-filter: blur(18px) saturate(120%);
+                -webkit-backdrop-filter: blur(18px) saturate(120%);
                 display: grid; place-items: center; padding: 24px;
-                font: 16px/1.55 -apple-system, "Segoe UI", Roboto, sans-serif; }
-        .card { width: min(520px, 100%); background: #fff; border-radius: 16px;
-                padding: 28px; box-shadow: 0 20px 60px rgba(0,0,0,.35); color: #16202e; }
-        .badge { display: inline-flex; align-items: center; gap: 8px; font-size: 13px;
-                 font-weight: 700; letter-spacing: .4px; text-transform: uppercase;
-                 color: #8a5a00; background: #fff4d6; padding: 6px 12px; border-radius: 999px; }
-        h2 { font-size: 24px; line-height: 1.25; margin: 16px 0 10px; }
-        p { font-size: 17px; margin: 0 0 18px; color: #2a3646; }
+                font: 16px/1.5 ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif;
+                color: #f4f4f5; }
+        .card { width: min(560px, 100%); background: rgba(20, 20, 23, .72);
+                backdrop-filter: blur(26px) saturate(140%);
+                -webkit-backdrop-filter: blur(26px) saturate(140%);
+                border: 1px solid rgba(255,255,255,.16); border-radius: 4px;
+                box-shadow: inset 0 1px 0 rgba(255,255,255,.14), 0 40px 90px rgba(0,0,0,.6);
+                padding: 0; overflow: hidden; }
+        .bar { display: flex; align-items: center; justify-content: space-between;
+               padding: 12px 22px; border-bottom: 1px solid rgba(255,255,255,.12);
+               font: 600 11px/1 ui-monospace, "SF Mono", Menlo, monospace;
+               letter-spacing: .18em; text-transform: uppercase; color: #a1a1aa; }
+        .bar b { color: #fff; font-weight: 700; }
+        .body { padding: 26px 22px 22px; }
+        h2 { font-size: 27px; line-height: 1.15; letter-spacing: -.02em; font-weight: 650;
+             margin: 0 0 12px; color: #fff; }
+        p { font-size: 17px; margin: 0 0 16px; color: #d4d4d8; }
+        .advice { font: 16px/1.5 ui-sans-serif, system-ui, sans-serif; color: #fff;
+                  border-left: 2px solid #fff; padding: 2px 0 2px 14px; margin: 0 0 18px; }
         .row { display: flex; flex-direction: column; gap: 10px; margin-top: 22px; }
-        button { font: inherit; font-size: 17px; font-weight: 600; padding: 14px 18px;
-                 border-radius: 10px; border: 0; cursor: pointer; }
-        .primary { background: #0b5cff; color: #fff; }
-        .primary[disabled] { background: #c8d4ea; cursor: default; }
-        .secondary { background: #eef1f6; color: #16202e; }
-        .quiet { background: transparent; color: #6b7686; font-size: 14px;
-                 font-weight: 500; text-decoration: underline; padding: 6px; }
-        .status { margin-top: 16px; font-size: 15px; color: #45566c; min-height: 22px; }
-        .advice { font-size: 16px; color: #1b4332; background: #eaf6ee; padding: 12px 14px;
-                  border-radius: 10px; margin: 0 0 14px; }
-        .mark { font-size: 13px; color: #8a94a3; margin-top: 18px; }
+        button { font: 600 15px/1 ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif;
+                 letter-spacing: .06em; text-transform: uppercase; padding: 16px 18px;
+                 border-radius: 2px; border: 1px solid transparent; cursor: pointer; }
+        .primary { background: #fff; color: #09090b; }
+        .primary[disabled] { background: rgba(255,255,255,.22); color: rgba(255,255,255,.65);
+                             cursor: default; }
+        .secondary { background: transparent; color: #fff; border-color: rgba(255,255,255,.35); }
+        .quiet { background: transparent; color: #8a8a93; font-size: 12px; letter-spacing: .08em;
+                 text-decoration: underline; border: 0; padding: 8px; }
+        .status { margin-top: 16px; font: 12px/1.4 ui-monospace, "SF Mono", Menlo, monospace;
+                  letter-spacing: .08em; text-transform: uppercase; color: #a1a1aa;
+                  min-height: 18px; }
+        .mark { margin: 18px 0 0; padding-top: 14px; border-top: 1px solid rgba(255,255,255,.12);
+                font-size: 12px; color: #71717a; }
       </style>
       <div class="veil">
         <div class="card" role="alertdialog" aria-modal="true">
-          <span class="badge">NoScam · on hold</span>
-          <h2></h2>
-          <p></p>
-          <div class="row">
-            <button class="primary"></button>
-            <button class="secondary">Cancel — don't do this</button>
-            <button class="quiet">I'm sure. Continue anyway</button>
+          <div class="bar"><span><b>NoScam</b></span><span class="kind">on hold</span></div>
+          <div class="body">
+            <h2></h2>
+            <p></p>
+            <div class="row">
+              <button class="primary"></button>
+              <button class="secondary">Cancel — don't do this</button>
+              <button class="quiet">I'm sure. Continue anyway</button>
+            </div>
+            <div class="status"></div>
+            <p class="mark">Nothing has been sent. Decided on this computer, and written
+              down so you can check it later.</p>
           </div>
-          <div class="status"></div>
-          <div class="mark">Nothing has been sent. This was decided on your own
-            computer, and written down so you can check it later.</div>
         </div>
       </div>`;
 
+    const kinds = { blocked: "blocked", needs_approval: "on hold",
+                    cool_off: "waiting" };
+    root.querySelector(".kind").textContent = kinds[decision.disposition] || "on hold";
     root.querySelector("h2").textContent = decision.headline;
     root.querySelector("p").textContent = decision.detail;
 
@@ -169,7 +201,7 @@
         const line = document.createElement("p");
         line.className = "advice";
         line.textContent = advice;
-        root.querySelector("h2").after(line);
+        root.querySelector("p").after(line);
       });
     }
     const primary = root.querySelector(".primary");
@@ -266,11 +298,21 @@
       event.stopImmediatePropagation();
 
       const rawAmount = fieldValue(form, AMOUNT).replace(/[^\d.]/g, "");
+      const payee = fieldValue(form, PAYEE);
+      // What kind of money movement this really is. Both of these leave in a
+      // way a bank cannot reverse, so they are not ordinary payments.
+      let kind = "payment";
+      if (CRYPTO_ADDRESS.test(payee) || CRYPTO_ADDRESS.test(form.innerText)) {
+        kind = "crypto_transfer";
+      } else if (GIFT_CARD_WORDS.test(form.innerText) ||
+                 GIFT_CARD_WORDS.test(document.title)) {
+        kind = "gift_card_purchase";
+      }
       guard({
-        type: "payment",
+        type: kind,
         host: location.host,
         amount: rawAmount ? Number(rawAmount) : null,
-        payee: fieldValue(form, PAYEE) || null,
+        payee: payee || null,
       }, () => {
         form.dataset.noscamCleared = "1";
         form.requestSubmit ? form.requestSubmit() : form.submit();
@@ -296,17 +338,76 @@
     }
   };
 
+  // Things that cannot be reissued, changed or undone once they are on someone
+  // else's server. The value never leaves the page: only the *kind* is sent to
+  // the local service, so NoScam never learns anyone's card number.
+  const luhn = (digits) => {
+    let sum = 0;
+    let double = false;
+    for (let i = digits.length - 1; i >= 0; i -= 1) {
+      let value = Number(digits[i]);
+      if (double) { value *= 2; if (value > 9) value -= 9; }
+      sum += value;
+      double = !double;
+    }
+    return digits.length >= 13 && sum % 10 === 0;
+  };
+
+  const GIFT_CARD_WORDS = /(gift\s?card|e-?gift|apple\s?card|google\s?play\s?(card|code)|steam\s?(card|wallet)|amazon\s?(gift|claim\s?code)|itunes)/i;
+  const CRYPTO_ADDRESS = /\b(0x[a-fA-F0-9]{40}|[13][a-km-zA-HJ-NP-Z1-9]{25,34}|bc1[a-z0-9]{25,62}|T[A-Za-z1-9]{33})\b/;
+
+  const sensitiveKind = (raw) => {
+    const value = String(raw || "").trim();
+    const digits = value.replace(/[\s-]/g, "");
+    if (/^\d{13,19}$/.test(digits) && luhn(digits)) return "card number";
+    if (/^[2-9]\d{11}$/.test(digits)) return "Aadhaar number";
+    if (/^[A-Z]{5}\d{4}[A-Z]$/.test(value.toUpperCase())) return "PAN";
+    if (/^[A-Z]{4}0[A-Z0-9]{6}$/.test(value.toUpperCase())) return "bank IFSC code";
+    // A gift card code read out over the phone is the whole theft.
+    if (/^[A-Z0-9]{4}[- ]?[A-Z0-9]{4}[- ]?[A-Z0-9]{4}([- ]?[A-Z0-9]{4})?$/.test(value.toUpperCase())
+        && /[A-Z]/.test(value.toUpperCase()) && value.length >= 14) return "gift card code";
+    return null;
+  };
+
+  const wireSensitiveFields = (scope) => {
+    for (const input of scope.querySelectorAll("input, textarea")) {
+      if (input.dataset.noscamData) continue;
+      input.dataset.noscamData = "1";
+      const look = () => {
+        if (input.dataset.noscamFlagged) return;
+        const kind = sensitiveKind(input.value);
+        if (!kind) return;
+        input.dataset.noscamFlagged = "1";
+        guard({ type: "sensitive_data_entry", host: location.host, data_kind: kind },
+              () => {});
+      };
+      input.addEventListener("change", look);
+      input.addEventListener("blur", look);
+      input.addEventListener("paste", () => setTimeout(look, 0));
+    }
+  };
+
+  // A page that is pretending to be a bank is worth saying so about the moment
+  // it opens, rather than waiting for someone to type into it.
+  const judgeThisPage = async () => {
+    const reply = await send({ kind: "noscam:arrival", url: location.href });
+    if (!reply.ok || !reply.data || reply.data.disposition === "allow") return;
+    showOverlay(reply.data, { onContinue: () => {} });
+  };
+
   const scan = () => {
     for (const form of document.querySelectorAll("form")) {
       if (looksLikePaymentForm(form)) wirePaymentForm(form);
     }
     wireSecretFields(document);
+    wireSensitiveFields(document);
   };
 
   const start = () => {
     if (window.__noscamLoaded) return;      // never wire a page twice
     window.__noscamLoaded = inExtension ? "extension" : "page";
     scan();
+    judgeThisPage();
     new MutationObserver(scan).observe(document.documentElement,
                                        { childList: true, subtree: true });
 

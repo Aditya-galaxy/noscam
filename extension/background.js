@@ -144,6 +144,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     "noscam:check": () => checkAction(tabId, message.action),
     "noscam:hold": () => ask(`/holds/${message.holdId}`),
     "noscam:advice": () => ask(`/holds/${message.holdId}/advice`),
+    "noscam:arrival": () => {
+      const where = provenance.get(tabId) || { origin: "unknown", source_host: null, at: null };
+      return ask("/gate/arrival", { url: message.url, provenance: where });
+    },
     "noscam:override": () =>
       ask(`/holds/${message.holdId}/override`, { reason: message.reason || "" }),
     "noscam:state": async () => ({

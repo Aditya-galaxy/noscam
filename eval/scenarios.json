@@ -1,134 +1,391 @@
 {
-  "note": "Twenty situations, half of them scams and half of them an ordinary Tuesday. Scored together on purpose: stopping scams is easy if you are willing to stop everything, and the cost of the defence belongs in the same table as its benefit.",
+  "note": "Situations NoScam is scored against, scams and an ordinary Tuesday together. Scored in one table on purpose: stopping scams is easy if you are willing to stop everything, so the cost of the defence belongs next to its benefit.",
   "scenarios": [
     {
       "name": "Bank imposter: move your money to a safe account",
       "kind": "scam",
       "source": "FTC: the costliest imposter script of 2025",
-      "action": {"type": "payment_new_payee", "host": "hdfc-secure.example", "amount": 18000, "payee": "RBI Safe Custody A/C"},
-      "provenance": {"origin": "link", "source_host": "web.whatsapp.com", "seconds_ago": 40}
+      "action": {
+        "type": "payment_new_payee",
+        "host": "hdfc-secure.example",
+        "amount": 18000,
+        "payee": "RBI Safe Custody A/C"
+      },
+      "provenance": {
+        "origin": "link",
+        "source_host": "web.whatsapp.com",
+        "seconds_ago": 40
+      }
     },
     {
       "name": "Digital arrest: install the support app",
       "kind": "scam",
       "source": "India, 2026: APK sent over WhatsApp",
-      "action": {"type": "app_install_file", "host": "cbi-verify.example", "file_name": "case-notice.apk"},
-      "provenance": {"origin": "link", "source_host": "web.whatsapp.com", "seconds_ago": 65}
+      "action": {
+        "type": "app_install_file",
+        "host": "cbi-verify.example",
+        "file_name": "case-notice.apk"
+      },
+      "provenance": {
+        "origin": "link",
+        "source_host": "web.whatsapp.com",
+        "seconds_ago": 65
+      }
     },
     {
       "name": "Screen-share support call: install AnyDesk",
       "kind": "scam",
       "source": "The caller has them search for it themselves, so nothing looks tainted",
-      "action": {"type": "remote_access_download", "host": "anydesk.com", "file_name": "AnyDesk.exe"},
-      "provenance": {"origin": "typed", "seconds_ago": 15}
+      "action": {
+        "type": "remote_access_download",
+        "host": "anydesk.com",
+        "file_name": "AnyDesk.exe"
+      },
+      "provenance": {
+        "origin": "typed",
+        "seconds_ago": 15
+      }
     },
     {
       "name": "Fake bank login reached from an email",
       "kind": "scam",
-      "action": {"type": "credential_entry", "host": "hdfcbank.secure-verify.example"},
-      "provenance": {"origin": "link", "source_host": "mail.google.com", "seconds_ago": 20}
+      "action": {
+        "type": "credential_entry",
+        "host": "hdfcbank.secure-verify.example"
+      },
+      "provenance": {
+        "origin": "link",
+        "source_host": "mail.google.com",
+        "seconds_ago": 20
+      }
     },
     {
       "name": "One-time code typed on the scammer's page",
       "kind": "scam",
-      "action": {"type": "otp_entry", "host": "hdfc-secure.example"},
-      "provenance": {"origin": "link", "source_host": "web.whatsapp.com", "seconds_ago": 90}
+      "action": {
+        "type": "otp_entry",
+        "host": "hdfc-secure.example"
+      },
+      "provenance": {
+        "origin": "link",
+        "source_host": "web.whatsapp.com",
+        "seconds_ago": 90
+      }
     },
     {
       "name": "Lookalike domain payment from a Telegram message",
       "kind": "scam",
-      "action": {"type": "payment_new_payee", "host": "icicibank-verify.example", "amount": 9500, "payee": "Verification Fee"},
-      "provenance": {"origin": "link", "source_host": "web.telegram.org", "seconds_ago": 120}
+      "action": {
+        "type": "payment_new_payee",
+        "host": "icicibank-verify.example",
+        "amount": 9500,
+        "payee": "Verification Fee"
+      },
+      "provenance": {
+        "origin": "link",
+        "source_host": "web.telegram.org",
+        "seconds_ago": 120
+      }
     },
     {
       "name": "Large transfer pushed by a message",
       "kind": "scam",
-      "action": {"type": "payment_new_payee", "host": "safe-custody.example", "amount": 45000, "payee": "Treasury Holding"},
-      "provenance": {"origin": "link", "source_host": "web.whatsapp.com", "seconds_ago": 200}
+      "action": {
+        "type": "payment_new_payee",
+        "host": "safe-custody.example",
+        "amount": 45000,
+        "payee": "Treasury Holding"
+      },
+      "provenance": {
+        "origin": "link",
+        "source_host": "web.whatsapp.com",
+        "seconds_ago": 200
+      }
     },
     {
       "name": "Refund overpayment scam",
       "kind": "scam",
-      "action": {"type": "payment_new_payee", "host": "refund-portal.example", "amount": 12000, "payee": "Amazon Refunds Dept"},
-      "provenance": {"origin": "link", "source_host": "outlook.live.com", "seconds_ago": 300}
+      "action": {
+        "type": "payment_new_payee",
+        "host": "refund-portal.example",
+        "amount": 12000,
+        "payee": "Amazon Refunds Dept"
+      },
+      "provenance": {
+        "origin": "link",
+        "source_host": "outlook.live.com",
+        "seconds_ago": 300
+      }
     },
     {
       "name": "Returning to a site the household already reported",
       "kind": "scam",
-      "action": {"type": "payment_new_payee", "host": "fake-bank.example", "amount": 3000, "payee": "Support Desk"},
-      "provenance": {"origin": "typed", "seconds_ago": 10},
+      "action": {
+        "type": "payment_new_payee",
+        "host": "fake-bank.example",
+        "amount": 3000,
+        "payee": "Support Desk"
+      },
+      "provenance": {
+        "origin": "typed",
+        "seconds_ago": 10
+      },
       "host_reported": true
     },
     {
       "name": "Traffic challan smish, paid on the fake portal",
       "kind": "scam",
-      "action": {"type": "payment_new_payee", "host": "echallan-pay.example", "amount": 1500, "payee": "Traffic Police Fine"},
-      "provenance": {"origin": "link", "source_host": "web.whatsapp.com", "seconds_ago": 55}
+      "action": {
+        "type": "payment_new_payee",
+        "host": "echallan-pay.example",
+        "amount": 1500,
+        "payee": "Traffic Police Fine"
+      },
+      "provenance": {
+        "origin": "link",
+        "source_host": "web.whatsapp.com",
+        "seconds_ago": 55
+      }
     },
-
     {
       "name": "Paying the landlord, as every month",
       "kind": "ordinary",
-      "action": {"type": "payment_known_payee", "host": "bank.example", "amount": 18000, "payee": "Landlord"},
-      "provenance": {"origin": "typed", "seconds_ago": 30}
+      "action": {
+        "type": "payment_known_payee",
+        "host": "bank.example",
+        "amount": 18000,
+        "payee": "Landlord"
+      },
+      "provenance": {
+        "origin": "typed",
+        "seconds_ago": 30
+      }
     },
     {
       "name": "Electricity bill from a bookmark",
       "kind": "ordinary",
-      "action": {"type": "payment_known_payee", "host": "bank.example", "amount": 2400, "payee": "Electricity Board"},
-      "provenance": {"origin": "bookmark", "seconds_ago": 12}
+      "action": {
+        "type": "payment_known_payee",
+        "host": "bank.example",
+        "amount": 2400,
+        "payee": "Electricity Board"
+      },
+      "provenance": {
+        "origin": "bookmark",
+        "seconds_ago": 12
+      }
     },
     {
       "name": "Logging into your own bank",
       "kind": "ordinary",
-      "action": {"type": "credential_entry", "host": "bank.example"},
-      "provenance": {"origin": "typed", "seconds_ago": 8}
+      "action": {
+        "type": "credential_entry",
+        "host": "bank.example"
+      },
+      "provenance": {
+        "origin": "typed",
+        "seconds_ago": 8
+      }
     },
     {
       "name": "Your bank's own one-time code, on your bank's page",
       "kind": "ordinary",
-      "action": {"type": "otp_entry", "host": "bank.example"},
-      "provenance": {"origin": "typed", "seconds_ago": 45}
+      "action": {
+        "type": "otp_entry",
+        "host": "bank.example"
+      },
+      "provenance": {
+        "origin": "typed",
+        "seconds_ago": 45
+      }
     },
     {
       "name": "Paying a known payee after reading a news article",
       "kind": "ordinary",
       "source": "A link click that is not an instruction from anyone",
-      "action": {"type": "payment_known_payee", "host": "bank.example", "amount": 5000, "payee": "Aarav"},
-      "provenance": {"origin": "link", "source_host": "www.thehindu.com", "seconds_ago": 25}
+      "action": {
+        "type": "payment_known_payee",
+        "host": "bank.example",
+        "amount": 5000,
+        "payee": "Aarav"
+      },
+      "provenance": {
+        "origin": "link",
+        "source_host": "www.thehindu.com",
+        "seconds_ago": 25
+      }
     },
     {
       "name": "Installing software you went and found yourself",
       "kind": "ordinary",
-      "action": {"type": "app_install_file", "host": "zoom.us", "file_name": "Zoom.pkg"},
-      "provenance": {"origin": "typed", "seconds_ago": 60}
+      "action": {
+        "type": "app_install_file",
+        "host": "zoom.us",
+        "file_name": "Zoom.pkg"
+      },
+      "provenance": {
+        "origin": "typed",
+        "seconds_ago": 60
+      }
     },
     {
       "name": "Second payment of the day, still inside the limit",
       "kind": "ordinary",
-      "action": {"type": "payment_known_payee", "host": "bank.example", "amount": 6000, "payee": "Aarav"},
-      "provenance": {"origin": "typed", "seconds_ago": 20},
+      "action": {
+        "type": "payment_known_payee",
+        "host": "bank.example",
+        "amount": 6000,
+        "payee": "Aarav"
+      },
+      "provenance": {
+        "origin": "typed",
+        "seconds_ago": 20
+      },
       "spent_today": 18000
     },
     {
       "name": "A message from your son, paying him back",
       "kind": "ordinary",
       "source": "The hardest ordinary case: a real message, a real request, a known payee",
-      "action": {"type": "payment_known_payee", "host": "bank.example", "amount": 1500, "payee": "Aarav"},
-      "provenance": {"origin": "link", "source_host": "web.whatsapp.com", "seconds_ago": 30}
+      "action": {
+        "type": "payment_known_payee",
+        "host": "bank.example",
+        "amount": 1500,
+        "payee": "Aarav"
+      },
+      "provenance": {
+        "origin": "link",
+        "source_host": "web.whatsapp.com",
+        "seconds_ago": 30
+      }
     },
     {
       "name": "Paying the plumber for the first time",
       "kind": "ordinary",
       "source": "A genuinely new payee — the case where friction is the product working",
-      "action": {"type": "payment_new_payee", "host": "bank.example", "amount": 2200, "payee": "Plumber"},
-      "provenance": {"origin": "typed", "seconds_ago": 40}
+      "action": {
+        "type": "payment_new_payee",
+        "host": "bank.example",
+        "amount": 2200,
+        "payee": "Plumber"
+      },
+      "provenance": {
+        "origin": "typed",
+        "seconds_ago": 40
+      }
     },
     {
       "name": "Reading a bank statement, no action at all",
       "kind": "ordinary",
-      "action": {"type": "payment_known_payee", "host": "bank.example", "amount": 100, "payee": "Landlord"},
-      "provenance": {"origin": "bookmark", "seconds_ago": 5}
+      "action": {
+        "type": "payment_known_payee",
+        "host": "bank.example",
+        "amount": 100,
+        "payee": "Landlord"
+      },
+      "provenance": {
+        "origin": "bookmark",
+        "seconds_ago": 5
+      }
+    },
+    {
+      "name": "Gift card demand on a support call",
+      "kind": "scam",
+      "source": "FTC: gift cards remain a top scam payment method",
+      "action": {
+        "type": "gift_card_purchase",
+        "host": "giftcards.example",
+        "amount": 5000
+      },
+      "provenance": {
+        "origin": "link",
+        "source_host": "web.whatsapp.com",
+        "seconds_ago": 70
+      }
+    },
+    {
+      "name": "Investment 'advisor' wants crypto",
+      "kind": "scam",
+      "action": {
+        "type": "crypto_transfer",
+        "host": "exchange.example",
+        "amount": 60000,
+        "payee": "0x8f2a55949038a501cb1bd0e2b3b0a2e2f0d3c111"
+      },
+      "provenance": {
+        "origin": "link",
+        "source_host": "web.telegram.org",
+        "seconds_ago": 150
+      }
+    },
+    {
+      "name": "Reading out a gift card code to the caller",
+      "kind": "scam",
+      "action": {
+        "type": "sensitive_data_entry",
+        "host": "redeem.example",
+        "data_kind": "gift card code"
+      },
+      "provenance": {
+        "origin": "link",
+        "source_host": "web.whatsapp.com",
+        "seconds_ago": 45
+      }
+    },
+    {
+      "name": "KYC page asking for an Aadhaar number",
+      "kind": "scam",
+      "action": {
+        "type": "sensitive_data_entry",
+        "host": "kyc-update.example",
+        "data_kind": "Aadhaar number"
+      },
+      "provenance": {
+        "origin": "link",
+        "source_host": "mail.google.com",
+        "seconds_ago": 35
+      }
+    },
+    {
+      "name": "Buying a birthday gift card",
+      "kind": "ordinary",
+      "action": {
+        "type": "gift_card_purchase",
+        "host": "shop.example",
+        "amount": 2000
+      },
+      "provenance": {
+        "origin": "typed",
+        "seconds_ago": 50
+      }
+    },
+    {
+      "name": "Paying for shopping with your own card",
+      "kind": "ordinary",
+      "action": {
+        "type": "sensitive_data_entry",
+        "host": "shop.example",
+        "data_kind": "card number"
+      },
+      "provenance": {
+        "origin": "typed",
+        "seconds_ago": 90
+      }
+    },
+    {
+      "name": "Buying crypto you decided to buy",
+      "kind": "ordinary",
+      "source": "Irreversible either way, so this one is deliberately friction",
+      "action": {
+        "type": "crypto_transfer",
+        "host": "exchange.example",
+        "amount": 5000,
+        "payee": "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq"
+      },
+      "provenance": {
+        "origin": "typed",
+        "seconds_ago": 30
+      }
     }
   ]
 }

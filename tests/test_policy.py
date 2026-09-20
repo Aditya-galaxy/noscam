@@ -226,3 +226,127 @@ def test_no_decision_depends_on_prose() -> None:
     a = decide(urgent, from_message(), LIMITS, now=NOW)
     b = decide(plain, from_message(), LIMITS, now=NOW)
     assert (a.disposition, a.reason_code) == (b.disposition, b.reason_code)
+
+
+# --------------------------------------------------------------------------- #
+# Personal data, and pages judged as they open
+# --------------------------------------------------------------------------- #
+
+@pytest.mark.parametrize("kind", ["card number", "Aadhaar number", "PAN"])
+def test_personal_data_is_refused_on_a_page_a_message_sent_you_to(kind: str) -> None:
+    """A password can be changed afterwards. An Aadhaar number cannot."""
+    decision = decide(
+        Action(type=ActionType.SENSITIVE_DATA_ENTRY, host="kyc-update.example", data_kind=kind),
+        from_message(), LIMITS, now=NOW,
+    )
+    assert decision.disposition is Disposition.BLOCKED
+    assert decision.reason_code == "sensitive_data_after_message"
+    assert kind in decision.headline
+    assert "can't change it afterwards" in decision.detail
+
+
+def test_typing_your_card_number_into_a_site_you_opened_is_ordinary_life() -> None:
+    decision = decide(
+        Action(type=ActionType.SENSITIVE_DATA_ENTRY, host="shop.example",
+               data_kind="card number"),
+        typed_myself(), LIMITS, now=NOW,
+    )
+    assert decision.disposition is Disposition.ALLOW
+
+
+def test_a_fake_page_opened_from_a_message_is_called_out_on_arrival() -> None:
+    from service.policy import decide_arrival
+
+    decision = decide_arrival(signal_codes=["brand_not_in_domain"], verdict="dangerous",
+                              provenance=from_message(), host="hdfcbank.verify.example",
+                              now=NOW)
+    assert decision is not None
+    assert decision.reason_code == "phishing_page_after_message"
+    assert "WhatsApp" in decision.detail
+
+
+def test_arrival_warnings_are_narrow_on_purpose() -> None:
+    """A warning on every slightly-odd site is a warning nobody reads."""
+    from service.policy import decide_arrival
+
+    # Dangerous address, but the person went there themselves.
+    assert decide_arrival(signal_codes=["lookalike_domain"], verdict="dangerous",
+                          provenance=typed_myself(), host="x.example", now=NOW) is None
+    # From a message, but nothing serious in the address.
+    assert decide_arrival(signal_codes=["not_https"], verdict="suspicious",
+                          provenance=from_message(), host="x.example", now=NOW) is None
+
+
+def test_a_reported_site_is_called_out_however_you_reached_it() -> None:
+    from service.policy import decide_arrival
+
+    decision = decide_arrival(signal_codes=[], verdict="no_signals",
+                              provenance=typed_myself(), host="bad.example", now=NOW,
+                              host_reported=True)
+    assert decision is not None and decision.reason_code == "reported_page_opened"
+
+
+def test_the_app_name_is_not_mangled_when_a_sentence_is_capitalised() -> None:
+    """str.capitalize() would render "WhatsApp" as "whatsapp"; a product that
+    misspells the app in front of the person has told them it wasn't looking."""
+    decision = decide(
+        Action(type=ActionType.PAYMENT_KNOWN_PAYEE, amount=2_000, payee="Landlord"),
+        from_message(), LIMITS, now=NOW,
+    )
+    assert "WhatsApp" in decision.detail
+
+
+# --------------------------------------------------------------------------- #
+# The other ways money leaves: gift cards and crypto
+# --------------------------------------------------------------------------- #
+
+def test_gift_cards_bought_because_of_a_message_are_refused_outright() -> None:
+    """The clearest tell in the whole business: nobody legitimate is paid this
+    way, so this one does not wait on a guardian being awake."""
+    decision = decide(
+        Action(type=ActionType.GIFT_CARD_PURCHASE, host="shop.example", amount=5_000),
+        from_message(), LIMITS, now=NOW,
+    )
+    assert decision.disposition is Disposition.BLOCKED
+    assert decision.reason_code == "gift_cards_after_message"
+    assert "gift cards" in decision.headline
+
+
+def test_buying_a_gift_card_as_a_present_is_left_alone() -> None:
+    decision = decide(
+        Action(type=ActionType.GIFT_CARD_PURCHASE, host="shop.example", amount=2_000),
+        typed_myself(), LIMITS, now=NOW,
+    )
+    assert decision.disposition is Disposition.ALLOW
+
+
+def test_crypto_after_a_message_is_refused() -> None:
+    decision = decide(
+        Action(type=ActionType.CRYPTO_TRANSFER, host="exchange.example",
+               amount=50_000, payee="0x8f2a55949038a501cb1bd0e2b3b0a2e2f0d3c111"),
+        from_message(), LIMITS, now=NOW,
+    )
+    assert decision.disposition is Disposition.BLOCKED
+    assert decision.reason_code == "crypto_after_message"
+    assert "no chargeback" in decision.detail
+
+
+def test_crypto_you_started_yourself_still_needs_a_second_pair_of_eyes() -> None:
+    """Irreversible either way. The friction is the point, and it is honest
+    about being friction rather than an accusation."""
+    decision = decide(
+        Action(type=ActionType.CRYPTO_TRANSFER, host="exchange.example", amount=5_000,
+               payee="bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq"),
+        typed_myself(), LIMITS, now=NOW,
+    )
+    assert decision.disposition is Disposition.NEEDS_APPROVAL
+    assert decision.reason_code == "crypto_needs_second_pair_of_eyes"
+
+
+def test_a_gift_card_code_is_treated_as_something_you_cannot_get_back() -> None:
+    decision = decide(
+        Action(type=ActionType.SENSITIVE_DATA_ENTRY, host="redeem.example",
+               data_kind="gift card code"),
+        from_message(), LIMITS, now=NOW,
+    )
+    assert decision.disposition is Disposition.BLOCKED

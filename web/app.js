@@ -50,33 +50,41 @@ function renderApprovals(holds) {
     box.innerHTML = `
       <div class="empty">
         <strong>Nothing waiting</strong>
-        You'll see a card here the moment something is held.
+        A card appears here the moment something is held.
       </div>`;
     return;
   }
 
   // Only redraw when something actually changed, so a countdown doesn't reset
   // under the thumb of someone about to press Approve.
-  const signature = pending.map((h) => `${h.id}:${h.seconds_remaining > 0}`).join(",");
+  const signature = pending.map((h) => `${h.id}:${h.approvable}:${h.seconds_remaining > 0}`).join(",");
   if (signature === lastSeen) return;
   lastSeen = signature;
 
   box.innerHTML = pending.map((hold) => {
     const action = hold.action || {};
     const amount = action.amount ? money(action.amount) : "";
-    const payee = action.payee ? ` to ${action.payee}` : "";
+    const payee = action.payee ? ` → ${action.payee}` : "";
+    const clock = `${Math.max(0, Math.floor(hold.seconds_remaining / 60))}:${String(
+      Math.max(0, hold.seconds_remaining % 60)).padStart(2, "0")}`;
+    // A refusal is something the household is told about, not asked about.
+    // Offering "allow" on one would be inviting the next move in the scam.
+    const buttons = hold.approvable === false ? `
+          <p class="meta">Stopped on their computer. Nothing for you to do.</p>` : `
+          <div class="row">
+            <button class="action deny" data-verdict="deny">No, stop it</button>
+            <button class="action approve" data-verdict="approve">Yes, allow</button>
+          </div>`;
+    const label = hold.approvable === false ? "Stopped for them" : "Waiting for you";
     return `
       <div class="card" data-id="${hold.id}">
-        <span class="badge">Waiting for you</span>
-        <h2>${hold.decision.headline}</h2>
-        <p>${hold.decision.detail}</p>
-        <p class="meta">${amount ? amount + payee : action.file_name || ""}<br>
-           On ${action.host || "their computer"} · expires in
-           ${Math.max(0, Math.floor(hold.seconds_remaining / 60))}:${String(
-             Math.max(0, hold.seconds_remaining % 60)).padStart(2, "0")}</p>
-        <div class="row">
-          <button class="action deny" data-verdict="deny">No, stop it</button>
-          <button class="action approve" data-verdict="approve">Yes, allow</button>
+        <div class="bar"><span>${label}</span><span>expires ${clock}</span></div>
+        <div class="body">
+          <h2>${hold.decision.headline}</h2>
+          <p>${hold.decision.detail}</p>
+          <p class="meta">${amount ? amount + payee : action.file_name || action.type || ""}<br>
+             ${action.host || "their computer"}</p>
+          ${buttons}
         </div>
       </div>`;
   }).join("");
@@ -105,7 +113,7 @@ async function refresh() {
   } catch {
     $("approvals").innerHTML =
       `<div class="empty"><strong>Not connected</strong>
-       Make sure NoScam is running on the computer.</div>`;
+       Start NoScam on the computer it protects.</div>`;
   }
 }
 
@@ -114,7 +122,7 @@ async function refresh() {
 async function checkLink(raw) {
   const url = (raw || "").trim();
   if (!url) return;
-  $("verdict").innerHTML = `<div class="verdict no_signals"><h3>Checking…</h3></div>`;
+  $("verdict").innerHTML = `<div class="verdict no_signals"><h3>Checking</h3></div>`;
   let result;
   try {
     result = await api("/links/check", { url });
@@ -176,6 +184,8 @@ async function loadHousehold() {
   const limits = household.limits;
   guardianName = limits.guardian_name;
   $("household-line").textContent = `${household.name} · ${limits.guardian_name} approves`;
+  const badge = document.getElementById("spent-badge");
+  if (badge) badge.textContent = `${money(household.spent_today)} today`;
   $("l-per").textContent = money(limits.per_transaction_cap);
   $("l-day").textContent = money(limits.daily_cap);
   $("l-spent").textContent = money(household.spent_today);
