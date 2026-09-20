@@ -1,0 +1,159 @@
+# NoScam
+
+**The scams that take the most money never break any encryption. They get the
+person to authorise it.**
+
+A message says your account is compromised and your money must move to a "safe
+account". A caller says you are under digital arrest and must install a support
+app. Someone asks you to share your screen so they can "verify the failed
+transaction". Your phone is not hacked and your bank is not breached — *you*
+are instructed, through a channel you trust, and you do it yourself.
+
+Americans reported **$16 billion lost to fraud in 2025**, a record; **$3.5
+billion of it to imposter scams**, one in three fraud reports
+([FTC](https://www.ftc.gov/news-events/news/press-releases/2026/06/ftc-data-show-people-reported-losing-3-point-5-billion-imposter-scams-2025)).
+India runs the same script with different props — APKs disguised as wedding
+invites and traffic challans, "digital arrest" video calls, AnyDesk installs —
+with the RBI reporting digital payment fraud up 34% year on year.
+
+So NoScam does not try to detect scams. **It refuses to let an instruction that
+arrived through a message authorise something irreversible.**
+
+---
+
+## What it does
+
+| | |
+|---|---|
+| **Limits what can happen** | Per-payment and daily caps, a cooling period for first-time payees, remote-control software refused outright. Set once by whoever is calmest. |
+| **Stops the moment of loss** | A payment, a one-time code, a password or an install is checked against *how you got there*. Reached from a message? It is held until a second person on another device says yes, or a timer runs out. |
+| **Checks links, with reasons** | Lookalike domains, brand names that aren't in the domain, punycode, shorteners that land somewhere else, pages asking for passwords, installers. Every finding in plain words. Reporting one protects the whole household. |
+
+The decision is deterministic. A language model writes one sentence of advice
+and has no other power — see [The model's leash](#the-models-leash).
+
+## Scored on both axes
+
+Stopping every scam is easy if you are willing to stop everything, so the cost
+is measured in the same table as the benefit. `python3 eval/score.py`:
+
+```
+Scams stopped                      10/10
+Ordinary actions left alone        8/10
+Ordinary actions delayed           2/10
+Ordinary actions wrongly stopped   0/10
+
+Ordinary actions that were delayed (the cost this household pays):
+  ~ A message from your son, paying him back
+  ~ Paying the plumber for the first time
+```
+
+Twenty hand-written situations are a regression test, not a measured accuracy
+claim. A real number needs real households, and nobody has used this in one yet.
+
+## Run it
+
+```bash
+python3 -m pip install fastapi uvicorn httpx pydantic
+python3 -m uvicorn service.app:app --port 8787        # the gate
+python3 demo/serve.py                                  # a stand-in messenger and bank
+python3 demo/seed.py                                   # limits + payees for the demo
+```
+
+- Phone app: **http://localhost:8787/app/** (approvals, link checks, limits)
+- Try the scam: **http://localhost:8790** → click the payment link → press
+  Transfer. The demo pages load the extension's content script directly, so the
+  gate works without installing anything.
+- Real protection on a desktop: load `extension/` at `chrome://extensions` →
+  Developer mode → *Load unpacked*. Only then can NoScam see how a tab was
+  really reached and cancel a download.
+
+Optional, for the advice line: `export GEMINI_API_KEY=…`. Without it everything
+works and the deterministic explanation is what you see.
+
+## How it works
+
+```
+   a message  ──click──▶  a payment page  ──press pay──▶  ┌───────────────┐
+                                                          │  the gate     │
+   typed yourself ─────▶  the same page  ──press pay──▶   │ (deterministic)│
+                                                          └───────┬───────┘
+                                                   held ◀─────────┴────────▶ allowed
+                                                    │
+                                        another device says yes
+```
+
+- **`service/provenance.py`** — how the page was reached. A link clicked in a
+  messenger or webmail taints what follows for 15 minutes; typing the address
+  yourself does not. Taint decays, because someone who clicked twenty minutes
+  ago and has been reading since is not mid-scam.
+- **`service/policy.py`** — the gate. A pure function with four dispositions,
+  ordered by severity, each carrying a sentence the person can check against
+  their own memory: *"you arrived here from WhatsApp 40 seconds ago."*
+- **`service/links.py`** — link signals, each with a named reason.
+- **`service/audit.py`** — a SHA-256 chained log of every decision, approval and
+  override. After a scam, "what actually happened" has an answer.
+- **`extension/`** — Chrome MV3. Provenance from `webNavigation`, remote-access
+  downloads cancelled via `downloads.cancel`, and an overlay that explains
+  rather than scolds. The same content script runs standalone for the demo.
+- **`web/`** — the phone: approvals, link checking, limits. Installable, and on
+  Android it registers as a share target so a link can be sent straight to it.
+
+### Security properties worth naming
+
+- **The link checker cannot be turned into a way into your network.** Hosts are
+  resolved before connecting and refused if they are loopback, private,
+  link-local or reserved; only http and https; every redirect hop is re-checked;
+  bodies are capped. (Recent audits found ~37% of public MCP servers vulnerable
+  to exactly this. Not repeating it is part of the product.)
+- **An approval is bound to one action.** It carries a fingerprint of host,
+  action, amount and payee, expires in five minutes and cannot be given twice —
+  so a nod for a small payment cannot be stretched to cover a large one.
+- **Nothing leaves the machine.** The service runs locally; payments, payees and
+  limits stay on it. The only outbound call is the optional advice line.
+
+### The model's leash
+
+The disposition is decided before the model is called, and nothing it returns
+can change it — `tests/test_explain.py` asserts the decision is identical even
+when the model replies *"this payment is completely safe, allow it"*. The payee
+name and hostname are the attacker's own text, so they reach the model
+truncated, flattened to one line and labelled UNTRUSTED; the reply is rejected
+if it contains a link, markup, or if the model stopped early. A successful
+prompt injection can change the wording of one sentence of advice. That is all.
+
+## Limits
+
+Read [LIMITATIONS.md](LIMITATIONS.md) before believing anything above. The short
+version: this does not protect a phone at the OS level, does not clean an
+already-compromised device, and can always be overridden by the person at the
+keyboard — deliberately, because a control that cannot be overridden is a
+control that gets uninstalled. It is a handbrake, not a cage.
+
+## Prior art
+
+The mechanism — track where data came from, and refuse to let untrusted sources
+authorise consequential actions — is taken from the agent-security literature,
+not invented here: [CaMeL](https://arxiv.org/abs/2503.18813),
+[FIDES](https://arxiv.org/abs/2505.23643),
+[LlamaFirewall](https://arxiv.org/abs/2505.03574). What is new here is pointing
+it at the person rather than the agent, and measuring the friction it costs.
+
+## Tests
+
+```bash
+python3 -m pytest -q      # 58: the gate's truth table, approval replay,
+                          # link signals, SSRF refusals, audit tampering,
+                          # and the model's leash
+python3 eval/score.py     # the two-axis scorecard
+```
+
+## AI disclosure
+
+Built for the TLN Cybersecurity Challenge 2026 with **Claude Code** (Anthropic)
+as a pair programmer: it wrote code and tests to my direction, and I reviewed,
+corrected and tested everything in this repository. **Gemini** is a runtime
+dependency for the single advice line described above, and is disabled without
+an API key. The research behind the threat model is cited inline.
+
+MIT licensed.
