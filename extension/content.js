@@ -95,8 +95,8 @@
       }
     });
 
-  const fieldValue = (form, pattern) => {
-    const fields = [...form.querySelectorAll("input, select")];
+  const fieldValue = (scope, pattern) => {
+    const fields = [...scope.querySelectorAll("input, select")];
     const match = fields.find((field) =>
       pattern.test(`${field.name} ${field.id} ${field.placeholder || ""}`));
     return match ? String(match.value || "").trim() : "";
@@ -128,7 +128,10 @@
     closeOverlay();
     overlayHost = document.createElement("div");
     overlayHost.style.cssText = "all: initial; position: fixed; inset: 0; z-index: 2147483647;";
-    const root = overlayHost.attachShadow({ mode: "open" });
+    // Closed: the page cannot query this shadow root, so it cannot read the card,
+    // remove its buttons or dispatch a click on "Continue anyway". We keep the
+    // reference ourselves, which is all our own focus handling needs.
+    const root = overlayHost.attachShadow({ mode: "closed" });
     root.innerHTML = `
       <style>
         :host { all: initial; }
@@ -328,6 +331,7 @@
         form.dataset.noscamCleared = "";
         return;                                // already decided; let it through
       }
+      if (passThrough) return;                 // decided a moment ago, as a click
       event.preventDefault();
       event.stopImmediatePropagation();
 
@@ -359,6 +363,60 @@
       }, () => {
         form.dataset.noscamCleared = "1";
         form.requestSubmit ? form.requestSubmit() : form.submit();
+      });
+    }, true);
+  };
+
+  // Real banking and payment pages usually do not submit a form at all — a
+  // click runs fetch() and the money moves. Listening only for "submit" would
+  // therefore miss almost every real payment, so the click itself is gated,
+  // in the capture phase, before the page's own handler runs.
+  const PAY_WORDS = /\b(pay|payment|transfer|send|remit|confirm|proceed|continue|authorise|authorize|approve|buy|subscribe|donate)\b/i;
+  let passThrough = null;                 // the one click we have already decided
+
+  const gateClicks = () => {
+    document.addEventListener("click", (event) => {
+      const button = event.target.closest &&
+        event.target.closest("button, input[type=submit], input[type=button], [role=button], a.btn");
+      if (!button || button === passThrough) {
+        passThrough = null;
+        return;
+      }
+      const label = (button.innerText || button.value || button.getAttribute("aria-label") || "");
+      if (!PAY_WORDS.test(label)) return;
+
+      const form = button.closest("form");
+      const scope = form || document;
+      const hasAmount = [...scope.querySelectorAll("input")].some((input) =>
+        AMOUNT.test(`${input.name} ${input.id} ${input.placeholder || ""}`) ||
+        input.type === "number");
+      if (!hasAmount) return;             // a "continue" button on an article is not a payment
+
+      event.preventDefault();
+      event.stopImmediatePropagation();
+
+      const rawAmount = fieldValue(scope, AMOUNT).replace(/[^\d.]/g, "");
+      const payee = fieldValue(scope, PAYEE);
+      const page = (scope.innerText || "") + " " + document.title;
+      let kind = "payment";
+      if (CRYPTO_ADDRESS.test(payee) || CRYPTO_ADDRESS.test(page)) kind = "crypto_transfer";
+      else if (GIFT_CARD_WORDS.test(page)) kind = "gift_card_purchase";
+      else if (MANDATE_WORDS.test(page)) kind = "upi_mandate_approval";
+      else if (COLLECT_WORDS.test(page) && UPI_INTENT.test(page + payee)) {
+        kind = "upi_collect_approval";
+      }
+
+      guard({
+        type: kind,
+        host: location.host,
+        amount: rawAmount ? Number(rawAmount) : null,
+        payee: payee || null,
+        recurrence: (page.match(RECURRENCE) || [null])[0],
+      }, () => {
+        // Replay the click we swallowed, once, and let it through.
+        passThrough = button;
+        if (form) form.dataset.noscamCleared = "1";
+        button.click();
       });
     }, true);
   };
@@ -454,6 +512,7 @@
     if (window.__noscamLoaded) return;      // never wire a page twice
     window.__noscamLoaded = inExtension ? "extension" : "page";
     scan();
+    gateClicks();
     judgeThisPage();
     new MutationObserver(scan).observe(document.documentElement,
                                        { childList: true, subtree: true });

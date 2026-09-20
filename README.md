@@ -134,6 +134,17 @@ already imitates.
 
 ### Security properties worth naming
 
+- **A web page cannot drive the service.** It listens on loopback, which is not
+  the same as private — every page in the browser can reach it. Changing limits,
+  answering a hold, adding a payee or reading what you spent today requires a
+  trusted Origin (the extension, or the phone app this service serves), which a
+  page cannot forge.
+- **The gate does not depend on a form submit.** Most real payment pages post
+  with `fetch()`, so clicks are intercepted in the capture phase, before the
+  page's own handler runs. There is a demo page with no form at all
+  (`/demo/bank/fetchpay.html`) that exists purely to prove it.
+- **The card is in a closed shadow root**, so the page cannot read it, delete
+  its buttons, or click "Continue anyway" on the person's behalf.
 - **The link checker cannot be turned into a way into your network.** Hosts are
   resolved before connecting and refused if they are loopback, private,
   link-local or reserved; only http and https; every redirect hop is re-checked;
@@ -180,7 +191,7 @@ it at the person rather than the agent, and measuring the friction it costs.
 ## Tests
 
 ```bash
-python3 -m pytest -q      # 85: the gate's truth table, approval replay,
+python3 -m pytest -q      # 95: the gate's truth table, approval replay,
                           # link signals, SSRF refusals, audit tampering,
                           # and the model's leash
 python3 eval/score.py     # the two-axis scorecard

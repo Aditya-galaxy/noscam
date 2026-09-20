@@ -14,7 +14,7 @@ import os
 from datetime import datetime
 from typing import Any, Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -38,6 +38,47 @@ app = FastAPI(title="NoScam", version="1.0")
 # different origins talking to a service on this machine.
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"],
                    allow_headers=["*"])
+
+
+# --------------------------------------------------------------------------- #
+# Who is allowed to change things
+#
+# The service listens on loopback, which is not the same as being private: every
+# page in the browser can reach it. Without this check, the scam page itself
+# could approve the hold raised against it, raise the household's limits, or
+# blocklist the real bank — a complete bypass, from JavaScript, on the page the
+# person is already looking at.
+#
+# Origin is the right discriminator because a page cannot forge it: the browser
+# sets it on every cross-origin request. Allowed are the extension
+# (chrome-extension://…), the phone app (served by this service, so same-origin)
+# and requests with no Origin at all, which come from local tools rather than a
+# page. Everything else — any web page anywhere — is refused.
+# --------------------------------------------------------------------------- #
+
+# A page can ask the gate about itself as often as it likes, and each refusal
+# raises a hold the guardian sees. Left uncapped, a scam page could bury the one
+# real request under a hundred invented ones — the oldest trick against any
+# alerting system. Beyond this many pending at once, the gate still decides and
+# still refuses; it simply stops adding to the queue.
+MAX_PENDING_HOLDS = 25
+
+EXTENSION_SCHEMES = ("chrome-extension://", "moz-extension://", "safari-web-extension://")
+
+
+def require_trusted_origin(request: Request) -> None:
+    origin = request.headers.get("origin")
+    if not origin:
+        return                                    # a local CLI, not a web page
+    if origin.startswith(EXTENSION_SCHEMES):
+        return
+    host = request.headers.get("host", "")
+    if origin.split("://")[-1] == host:
+        return                                    # the phone app we serve ourselves
+    raise HTTPException(
+        status_code=403,
+        detail="a web page may not change this household's settings",
+    )
 
 
 # --------------------------------------------------------------------------- #
@@ -181,6 +222,10 @@ def gate_check(payload: CheckIn) -> DecisionOut:
                          and not h.is_expired(now)), None)
         if existing is not None:
             hold_id = existing.id
+        elif sum(1 for h in state.holds.values()
+                 if h.summary(now)["status"] == "pending") >= MAX_PENDING_HOLDS:
+            audit.record("hold_queue_full", {"host": action.host,
+                                             "reason_code": decision.reason_code}, at=now)
         else:
             hold = Hold(
                 id=new_id(), created_at=now, fingerprint=action_fingerprint,
@@ -295,7 +340,8 @@ def get_hold(hold_id: str) -> dict[str, Any]:
 
 
 @app.post("/holds/{hold_id}/decision")
-def decide_hold(hold_id: str, payload: HoldDecisionIn) -> dict[str, Any]:
+def decide_hold(hold_id: str, payload: HoldDecisionIn,
+                _: None = Depends(require_trusted_origin)) -> dict[str, Any]:
     """The out-of-band answer. Time-limited, single-use, and bound to the one
     action it was raised for — the scammer on the phone cannot supply it."""
     now = utcnow()
@@ -350,6 +396,12 @@ class OverrideIn(BaseModel):
 @app.post("/holds/{hold_id}/override")
 def override_hold(hold_id: str, payload: OverrideIn) -> dict[str, Any]:
     """The escape hatch, and the reason this is a handbrake rather than a cage.
+
+    Deliberately not origin-locked: the hosted demo runs the content script
+    inside an ordinary page, and overriding is the person's own decision about
+    their own hold. A page that overrides the hold raised against itself has
+    gained nothing — it could simply have proceeded — and the override is
+    written to the audit chain either way.
     Always available, always recorded — including in the weekly summary a
     guardian sees, which is what makes the override meaningful rather than a
     silent way around the control."""
@@ -390,7 +442,8 @@ def links_check(payload: LinkIn) -> dict[str, Any]:
 
 
 @app.post("/links/report")
-def links_report(payload: LinkIn) -> dict[str, Any]:
+def links_report(payload: LinkIn,
+                 _: None = Depends(require_trusted_origin)) -> dict[str, Any]:
     """One person getting targeted protects everyone else in the household."""
     host = normalize_host(payload.url)
     if not host:
@@ -410,7 +463,7 @@ def links_report(payload: LinkIn) -> dict[str, Any]:
 # --------------------------------------------------------------------------- #
 
 @app.get("/household")
-def get_household() -> dict[str, Any]:
+def get_household(_: None = Depends(require_trusted_origin)) -> dict[str, Any]:
     household = store.read().household
     return {
         "name": household.name,
@@ -423,7 +476,8 @@ def get_household() -> dict[str, Any]:
 
 
 @app.put("/limits")
-def put_limits(limits: Limits) -> dict[str, Any]:
+def put_limits(limits: Limits,
+               _: None = Depends(require_trusted_origin)) -> dict[str, Any]:
     def mutate(s: State) -> None:
         s.household.limits = limits
 
@@ -437,7 +491,8 @@ class PayeesIn(BaseModel):
 
 
 @app.post("/household/payees")
-def add_payees(payload: PayeesIn) -> dict[str, Any]:
+def add_payees(payload: PayeesIn,
+               _: None = Depends(require_trusted_origin)) -> dict[str, Any]:
     """Tell NoScam who you already pay. Everyone else is a first-time payee and
     waits — which is the friction this product is honest about."""
     def mutate(s: State) -> None:
@@ -451,7 +506,7 @@ def add_payees(payload: PayeesIn) -> dict[str, Any]:
 
 
 @app.post("/household/reset")
-def reset_household() -> dict[str, Any]:
+def reset_household(_: None = Depends(require_trusted_origin)) -> dict[str, Any]:
     """Clear holds and today's spending, keeping limits and payees. Used to run
     the demo twice without restarting anything."""
     def mutate(s: State) -> None:
@@ -469,7 +524,7 @@ class PairIn(BaseModel):
 
 
 @app.post("/pair/start")
-def pair_start() -> dict[str, str]:
+def pair_start(_: None = Depends(require_trusted_origin)) -> dict[str, str]:
     code = pairing_code()
 
     def mutate(s: State) -> None:

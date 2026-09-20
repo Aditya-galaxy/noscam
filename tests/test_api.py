@@ -281,3 +281,95 @@ def test_a_guardian_can_let_a_waiting_payment_through_early(api) -> None:
     }).json()
     assert first["disposition"] == "cool_off"
     assert client.get(f"/holds/{first['hold_id']}").json()["approvable"] is True
+
+
+# --------------------------------------------------------------------------- #
+# The local service is reachable from every page in the browser
+# --------------------------------------------------------------------------- #
+
+SCAM_PAGE = {"origin": "http://scam.example"}
+
+
+def test_a_web_page_cannot_approve_the_hold_raised_against_it(api) -> None:
+    """The complete bypass this check exists to stop: the scam page raising a
+    hold and then answering it in JavaScript, on the machine it is running on."""
+    client, _ = api
+    hold_id = client.post("/gate/check", json=PAYMENT).json()["hold_id"]
+
+    refused = client.post(f"/holds/{hold_id}/decision", json={"verdict": "approve"},
+                          headers=SCAM_PAGE)
+    assert refused.status_code == 403
+    assert client.get(f"/holds/{hold_id}").json()["status"] == "pending"
+    assert client.post("/gate/check", json=PAYMENT).json()["disposition"] == "needs_approval"
+
+
+@pytest.mark.parametrize("method, path, body", [
+    ("put", "/limits", {"per_transaction_cap": 10_000_000, "daily_cap": 10_000_000}),
+    ("post", "/household/payees", {"payees": ["The Attacker"]}),
+    ("post", "/household/reset", None),
+    ("post", "/links/report", {"url": "https://hdfcbank.com"}),
+    ("post", "/pair/start", None),
+])
+def test_a_web_page_cannot_change_the_household(api, method, path, body) -> None:
+    """Raising the limits, adding themselves as a known payee, wiping the day's
+    spending, or blocklisting the real bank — all from a page."""
+    client, _ = api
+    response = getattr(client, method)(path, json=body, headers=SCAM_PAGE)
+    assert response.status_code == 403
+
+
+def test_a_web_page_cannot_read_the_household(api) -> None:
+    """Payees, limits and what has been spent today are nobody else's business."""
+    client, _ = api
+    assert client.get("/household", headers=SCAM_PAGE).status_code == 403
+
+
+def test_the_phone_app_and_the_extension_are_allowed(api) -> None:
+    client, _ = api
+    hold_id = client.post("/gate/check", json=PAYMENT).json()["hold_id"]
+
+    # The phone app is served by this service, so its Origin is our own host.
+    phone = client.post(f"/holds/{hold_id}/decision", json={"verdict": "deny"},
+                        headers={"origin": "http://testserver", "host": "testserver"})
+    assert phone.status_code == 200
+
+    # The extension has an extension origin.
+    assert client.get("/household",
+                      headers={"origin": "chrome-extension://abcdefghijklmnop"}
+                      ).status_code == 200
+
+
+def test_a_page_may_still_report_what_it_is_looking_at_to_the_gate(api) -> None:
+    """Checking an action and overriding your own hold stay open: the hosted
+    demo runs the content script inside an ordinary page, and neither lets a
+    page do anything it could not do by simply proceeding."""
+    client, _ = api
+    body = client.post("/gate/check", json=PAYMENT, headers=SCAM_PAGE).json()
+    assert body["disposition"] == "needs_approval"
+    assert client.post(f"/holds/{body['hold_id']}/override", json={"reason": "x"},
+                       headers=SCAM_PAGE).status_code == 200
+
+
+def test_a_page_cannot_bury_the_real_request_under_invented_ones(api) -> None:
+    """Flooding the queue is the oldest attack on any alerting system: make the
+    guardian scroll past a hundred cards to find the one that matters."""
+    client, module = api
+    for index in range(40):
+        client.post("/gate/check", json={
+            "action": {"type": "payment", "host": "scam.example", "amount": 100 + index,
+                       "payee": f"Decoy {index}"},
+            "provenance": {"origin": "link", "source_host": "web.whatsapp.com",
+                           "at": just_now()},
+        })
+
+    pending = client.get("/holds").json()
+    assert len(pending) <= 25
+
+    # The gate still decides and still refuses; only the queue is capped.
+    flooded = client.post("/gate/check", json={
+        "action": {"type": "payment", "host": "scam.example", "amount": 99_000,
+                   "payee": "The Attacker"},
+        "provenance": {"origin": "link", "source_host": "web.whatsapp.com", "at": just_now()},
+    }).json()
+    assert flooded["disposition"] == "needs_approval"
+    assert "hold_queue_full" in [r["kind"] for r in client.get("/audit/recent?limit=60").json()]

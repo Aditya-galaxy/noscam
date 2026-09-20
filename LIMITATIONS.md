@@ -39,6 +39,48 @@ Neither is built. Both are honest roadmap, not claims.
 A web app also cannot read your SMS, which is why a link that arrives by text
 and is typed in by hand looks clean to the gate.
 
+## A hostile page is a different problem from a mistake
+
+This distinction decides what NoScam can honestly claim, so it is worth being
+exact about.
+
+**Against a cooperative page — which is every real bank, every real payment
+form, and the case that actually matters —** the gate holds. The extension sees
+the click before the page does, the payment does not leave, and the person gets
+a sentence they can check. We tested this against a page with *no form and no
+submit event*, posting with `fetch()` the way real banking sites do, and the
+payment was stopped.
+
+**Against a page that is actively fighting the extension**, a content script is
+not a sandbox. The page can render its own fake "NoScam" card, or remove ours
+from the DOM. Some of that we have closed — the card lives in a **closed** shadow
+root, so the page cannot read it, delete its buttons or dispatch a click on
+"Continue anyway" — but a page that controls its own JavaScript can always find
+some way to send its own request.
+
+That is less damaging than it sounds, because the hostile page is not the bank.
+When the money actually moves, it moves on the person's *real* banking site,
+which is cooperative. What the hostile page can do is collect a password, an OTP
+or a card number — and those are refused earlier, on arrival and at the field,
+before the page is asked to co-operate with anything.
+
+## What we hardened after attacking our own build
+
+- **A web page could drive the local service.** It listens on loopback, which is
+  not the same as being private: every page in the browser can reach it. Before
+  this, a scam page could approve the hold raised against itself, raise the
+  household's limits, add itself as a known payee, blocklist the real bank, or
+  read what you have spent today. Mutating endpoints now require a trusted
+  Origin — the extension, or the phone app this service serves — which a page
+  cannot forge. Checking an action and overriding your own hold stay open,
+  because neither lets a page do anything it could not do by simply proceeding.
+- **Only form submits were gated**, so any page posting with `fetch()` — most
+  real payment pages — went straight through. Clicks are now gated in the
+  capture phase, before the page's own handler runs.
+- **The card was readable by the page**, in an open shadow root. It is closed now.
+- **The approval queue could be flooded** to bury the one request that mattered.
+  It is capped; past the cap the gate still refuses, it just stops queueing.
+
 ## It does not clean a machine that is already compromised
 
 If remote-control software is already running, or an APK is already installed
@@ -56,6 +98,15 @@ A person under sustained pressure from a convincing caller *can* be talked into
 pressing it. The design answer is that an approval on a second device cannot be
 pressed by the caller, and the audit trail makes the override visible
 afterwards. Neither is the same as making it impossible.
+
+## The link checker visits the site from your computer
+
+Checking a link means fetching it, from your machine, so the site learns your IP
+address and that someone looked — the same as opening it, minus your cookies and
+minus any JavaScript running. It is hardened against being turned into a way
+into your own network (hosts resolved and refused if private or loopback, every
+redirect hop re-checked, bodies capped), but it is not anonymous, and the phone
+app should not imply that it is.
 
 ## Provenance has holes
 
