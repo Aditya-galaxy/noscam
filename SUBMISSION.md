@@ -132,6 +132,11 @@ households, because until that exists the accuracy claim stays small.
 
 ## Try it
 
+**No install:** <https://aditya-galaxy.github.io/noscam/> — what it does, what it
+refuses, what it cannot do, and the demo film.
+
+**On your own machine**, which is the only place it can actually gate anything:
+
 ```bash
 git clone https://github.com/Aditya-galaxy/noscam && cd noscam
 python3 -m pip install -r requirements.txt
