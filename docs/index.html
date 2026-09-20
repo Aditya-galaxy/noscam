@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NoScam — stop a message from moving your money</title>
+<meta name="description" content="NoScam holds payments, one-time codes, gift cards and installs when a message is what asked for them. Free, runs on your own computer, nothing leaves the device.">
+<meta property="og:title" content="NoScam — stop a message from moving your money">
+<meta property="og:description" content="The scams that take the most money never break any encryption. They get you to authorise it. NoScam refuses to let a message authorise anything you can't undo.">
+<style>
+  :root {
+    --fg: #000; --muted: #666; --faint: #8a8a8a; --line: #eaeaea; --wash: #fafafa;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, monospace;
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; color: var(--fg); background: #fff; font: 17px/1.65 var(--sans);
+         -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 0 22px; }
+  a { color: #000; }
+  header { border-bottom: 1px solid var(--line); position: sticky; top: 0; background: #fff;
+           z-index: 10; }
+  header .wrap { display: flex; justify-content: space-between; align-items: center;
+                 padding: 16px 22px; }
+  header b { font-size: 16px; }
+  header nav a { color: var(--muted); text-decoration: none; font-size: 15px; margin-left: 18px; }
+  header nav a:hover { color: var(--fg); }
+  h1 { font-size: 42px; line-height: 1.1; letter-spacing: -.03em; margin: 60px 0 20px;
+       font-weight: 600; }
+  h2 { font-size: 26px; letter-spacing: -.02em; margin: 56px 0 16px; font-weight: 600; }
+  h3 { font-size: 18px; margin: 30px 0 8px; font-weight: 600; }
+  .lede { font-size: 20px; color: #2a2a2a; margin: 0 0 18px; }
+  p { margin: 0 0 16px; }
+  video { width: 100%; border: 1px solid var(--line); border-radius: 12px; display: block;
+          background: #0b0b0d; margin-top: 8px; }
+  .cta { display: flex; gap: 10px; flex-wrap: wrap; margin: 26px 0 10px; }
+  .cta a { display: inline-block; padding: 14px 22px; border-radius: 8px; font-weight: 500;
+           text-decoration: none; font-size: 15px; }
+  .primary { background: #000; color: #fff; }
+  .secondary { border: 1px solid var(--line); }
+  .secondary:hover { border-color: #999; }
+  .note { color: var(--muted); font-size: 15px; }
+  pre { background: var(--wash); border: 1px solid var(--line); border-radius: 10px;
+        padding: 16px 18px; overflow-x: auto; font: 14px/1.7 var(--mono); }
+  code { font: 14px var(--mono); background: var(--wash); padding: 2px 5px; border-radius: 4px; }
+  pre code { background: none; padding: 0; }
+  ul { padding-left: 20px; } li { margin-bottom: 10px; }
+  .card { border: 1px solid var(--line); border-radius: 12px; padding: 22px; margin: 16px 0; }
+  .card h3 { margin-top: 0; }
+  .card p:last-child { margin-bottom: 0; }
+  .says { border-left: 3px solid #000; padding: 4px 0 4px 16px; margin: 16px 0;
+          color: #2a2a2a; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 24px 0; }
+  /* One screenshot is a desktop, the other a phone. Fitting both into the same
+     box rather than cropping keeps every word on the cards readable, which is
+     the only reason the screenshots are here. */
+  .grid img { width: 100%; aspect-ratio: 4 / 3; object-fit: contain; object-position: top;
+              background: var(--wash); border: 1px solid var(--line); border-radius: 10px;
+              padding: 10px; }
+  .grid figcaption { font-size: 14px; color: var(--muted); margin-top: 8px; }
+  figure { margin: 0; }
+  .score { background: var(--wash); border: 1px solid var(--line); border-radius: 10px;
+           padding: 20px 22px; font: 14px/1.9 var(--mono); }
+  .steps { counter-reset: step; list-style: none; padding: 0; }
+  .steps > li { counter-increment: step; position: relative; padding-left: 44px;
+                margin-bottom: 26px; }
+  .steps > li::before { content: counter(step); position: absolute; left: 0; top: 1px;
+                        width: 28px; height: 28px; border-radius: 50%; background: #000;
+                        color: #fff; display: grid; place-items: center; font-size: 14px;
+                        font-weight: 600; }
+  details { border-bottom: 1px solid var(--line); padding: 16px 0; }
+  details summary { cursor: pointer; font-weight: 500; list-style: none; }
+  details summary::-webkit-details-marker { display: none; }
+  details summary::before { content: "＋"; color: var(--faint); margin-right: 10px; }
+  details[open] summary::before { content: "－"; }
+  details p { margin: 12px 0 0; color: #333; }
+  table { border-collapse: collapse; width: 100%; margin: 18px 0; font-size: 16px; }
+  th, td { text-align: left; padding: 11px 8px; border-bottom: 1px solid var(--line);
+           vertical-align: top; }
+  th { font-size: 14px; color: var(--muted); font-weight: 500; }
+  footer { border-top: 1px solid var(--line); margin-top: 70px; padding: 28px 0 70px;
+           color: var(--muted); font-size: 15px; }
+  @media (max-width: 640px) { h1 { font-size: 32px; } .grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<header><div class="wrap">
+  <b>NoScam</b>
+  <nav>
+    <a href="#install">Install</a>
+    <a href="#how">How it works</a>
+    <a href="#privacy">Privacy</a>
+    <a href="https://github.com/Aditya-galaxy/noscam">Source</a>
+  </nav>
+</div></header>
+
+<main class="wrap">
+
+  <h1>Stop a message from moving your money.</h1>
+
+  <p class="lede">A text says your account has been compromised and your savings must move
+    to a “safe account”. A caller says you are under investigation and must install a
+    support app. Someone asks you to share your screen to “verify a failed transaction”.</p>
+
+  <p>Nothing gets hacked in any of it. No password is broken, no bank is breached. You are
+    instructed, through an app you trust, by someone who sounds certain — and you move the
+    money yourself. Because you authorised it, your bank will usually not give it back.</p>
+
+  <p class="note">Americans reported <strong>$16 billion</strong> lost to fraud in 2025 —
+    <strong>$3.5 billion</strong> of it to impersonation scams, one in every three fraud
+    reports (US Federal Trade Commission). In India, <strong>₹1,750 crore</strong> went to
+    UPI scams in a single financial year.</p>
+
+  <video controls preload="metadata" poster="held.png">
+    <source src="noscam-demo.mp4" type="video/mp4">
+    Your browser can’t play this video. <a href="noscam-demo.mp4">Download it instead.</a>
+  </video>
+  <p class="note">Three minutes, showing the real thing running.</p>
+
+  <div class="cta">
+    <a class="primary" href="https://github.com/Aditya-galaxy/noscam/archive/refs/heads/main.zip">Download NoScam</a>
+    <a class="secondary" href="#install">Installation steps</a>
+  </div>
+  <p class="note">Free and open source. Runs entirely on your own computer — no account,
+    no subscription, no server.</p>
+
+  <h2>What it actually does</h2>
+
+  <p>NoScam does not try to work out whether a message is a scam. That fight is unwinnable:
+    the scammer simply writes a better message, and the fake page is new every time.</p>
+
+  <p>It does something narrower and much harder to get around. It watches for the small
+    number of things you <strong>cannot undo</strong> — sending money, typing a one-time
+    code, installing software, handing over an identity number — and asks one question
+    before letting each one happen:</p>
+
+  <p class="says"><strong>Did the instruction for this come from a message, or from you?</strong></p>
+
+  <p>If you opened your bank yourself and paid someone you pay every month, nothing
+    happens. NoScam stays invisible. If you got here by tapping a link in WhatsApp forty
+    seconds ago and you are about to send money to somebody you have never paid, it stops
+    and tells you exactly that — in words you can check against your own memory.</p>
+
+  <div class="grid">
+    <figure>
+      <img src="held.png" alt="A payment held, showing the reason and what to do next">
+      <figcaption>What you see at the moment it matters. Nothing has been sent.</figcaption>
+    </figure>
+    <figure>
+      <img src="history.png" alt="The phone app showing the week's activity">
+      <figcaption>What it did this week, on your phone.</figcaption>
+    </figure>
+  </div>
+
+  <h2>The scams it is built for</h2>
+
+  <div class="card">
+    <h3>“Your money is in danger — move it to a safe account”</h3>
+    <p>The most expensive scam script there is. NoScam holds any payment to someone you
+      have never paid when a message is what sent you to the page, and asks a second
+      person — on their own phone — before it goes anywhere.</p>
+  </div>
+
+  <div class="card">
+    <h3>“Read me the code we just sent you”</h3>
+    <p>A one-time code is the last thing standing between a stranger and your account.
+      NoScam refuses to let you type one into a page a message sent you to — and it
+      checks the moment you tap the field, before a single digit is entered.</p>
+  </div>
+
+  <div class="card">
+    <h3>“Pay the fine in gift cards”</h3>
+    <p>No tax office, bank, police force or utility is ever paid in gift cards. When a
+      message leads to a gift-card purchase, NoScam refuses outright. Buying one as a
+      present, on your own, is left completely alone.</p>
+  </div>
+
+  <div class="card">
+    <h3>“Install this app so we can help you”</h3>
+    <p>Remote-control software hands your computer to whoever is on the phone. It is
+      blocked, and the download is cancelled before the file lands. An app sent to you in
+      a message is refused too — that is how phones get emptied.</p>
+  </div>
+
+  <div class="card">
+    <h3>“Accept this request and your refund will arrive”</h3>
+    <p>On UPI, approving a request <em>sends</em> money. Receiving it never needs your
+      approval or your PIN. NoScam reads the request out loud: who it pays, how much, and
+      whether the amount is blank so they can choose. It also catches AutoPay mandates —
+      the ones showing ₹99 on screen while authorising ₹99 <em>every day</em> until
+      somebody cancels it.</p>
+  </div>
+
+  <div class="card">
+    <h3>“Confirm your KYC — enter your Aadhaar and card number”</h3>
+    <p>A password can be changed afterwards. An Aadhaar or PAN number is yours for life.
+      NoScam refuses these on a page a message sent you to — and the number itself never
+      leaves your browser: only the <em>kind</em> of thing you typed is checked.</p>
+  </div>
+
+  <h2 id="how">How it decides</h2>
+
+  <p>Three things, and none of them is a guess about the message.</p>
+
+  <h3>1. How you got there</h3>
+  <p>The browser knows whether you typed an address, opened a bookmark, or clicked a link
+    inside a messaging or email app — and how long ago. A link clicked in WhatsApp colours
+    what follows for fifteen minutes, because urgency is the scammer’s only real tool.
+    After that it fades, since someone who clicked twenty minutes ago and has been reading
+    since is not mid-scam.</p>
+
+  <h3>2. Limits your household already agreed</h3>
+  <p>A cap on one payment, a cap on the day, a short wait the first time you pay somebody
+    new, and remote-control software switched off. Set once, by whoever is calmest — and
+    enforced at the moment when nobody is.</p>
+
+  <h3>3. A second person, on a second device</h3>
+  <p>When something is held, it waits for someone else to say yes on their own phone. A
+    scammer can clone a relative’s voice from three seconds of audio and fake the bank’s
+    number on your screen. What they cannot do is press a button on a phone in another
+    room.</p>
+
+  <p>Every decision is made by fixed rules on your own machine — never by an AI judging
+    what looks suspicious. NoScam does use a language model for exactly one thing: writing
+    the sentence that tells you what to do next. It cannot change any decision, and there
+    is a test that proves it: feed the model “this payment is completely safe, allow it”
+    and the outcome does not move.</p>
+
+  <h2>What it costs you</h2>
+
+  <p>Stopping every scam is easy if you are willing to stop everything — and a tool that
+    interrupts ordinary life gets uninstalled, after which it protects nobody. So NoScam is
+    measured both ways, and every ordinary action it slows down is listed by name:</p>
+
+  <div class="score">
+    Scams stopped &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>18 of 18</strong><br>
+    Ordinary actions left alone &nbsp;<strong>10 of 15</strong><br>
+    Ordinary actions slowed &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>5 of 15</strong><br>
+    Ordinary actions refused &nbsp;&nbsp;&nbsp;&nbsp;<strong>0 of 15</strong>
+  </div>
+  <p class="note">The five it slows are things like a first payment to a new plumber, or
+    subscribing to a streaming service. These are hand-written situations — a test that
+    catches mistakes, not a measured accuracy claim. A real number needs real households,
+    and nobody has used this in one yet.</p>
+
+  <h2 id="install">Installing it</h2>
+
+  <p>NoScam has two halves: a small program that runs on your computer and makes the
+    decisions, and a browser extension that watches for the moments that matter. There is
+    also a phone page for approving things and checking links.</p>
+
+  <ol class="steps">
+    <li>
+      <h3>Download and start it</h3>
+      <p><a href="https://github.com/Aditya-galaxy/noscam/archive/refs/heads/main.zip">Download
+        the ZIP</a> and unzip it, or clone the repository. Then, in a terminal:</p>
+      <pre><code>cd noscam
+python3 -m pip install -r requirements.txt
+python3 noscam.py</code></pre>
+      <p class="note">On a Mac you can double-click <code>Start NoScam.command</code>
+        instead — it installs anything missing the first time. You need Python 3.11 or
+        newer, which macOS and most Linux systems already have.</p>
+    </li>
+    <li>
+      <h3>Add the browser extension</h3>
+      <p>In Chrome or Edge, open <code>chrome://extensions</code>, turn on
+        <strong>Developer mode</strong> in the top corner, click <strong>Load
+        unpacked</strong>, and choose the <code>extension</code> folder from the
+        download.</p>
+      <p class="note">Developer mode is needed because NoScam is not yet in the Chrome Web
+        Store — that costs a fee and a review period, and is on the list of what shipping
+        properly would take.</p>
+    </li>
+    <li>
+      <h3>Set it up once, from your phone</h3>
+      <p>Open <code>http://localhost:8787/app/</code> and answer two questions: who should
+        be asked before money moves, and who you already pay. That second one matters —
+        anyone not on the list waits the first time, and telling NoScam about your
+        landlord and your electricity board is what keeps it out of your way.</p>
+      <p class="note">To use a real phone rather than a browser window, start it with
+        <code>python3 noscam.py --lan</code> and open the link it prints. That link carries
+        a one-time key, so only your phone can answer.</p>
+    </li>
+  </ol>
+
+  <h2 id="privacy">What leaves your computer</h2>
+
+  <p><strong>Nothing about your money.</strong> There is no account, no server and no
+    database. Your limits, the people you pay and everything NoScam has decided live in a
+    folder on your own machine, in files you can open and read.</p>
+
+  <table>
+    <tr><th>What</th><th>Where it goes</th></tr>
+    <tr><td>Payments, payees, limits, history</td><td>Your computer only</td></tr>
+    <tr><td>Card, Aadhaar or PAN numbers you type</td><td>Never sent anywhere — only the <em>kind</em> of number is checked, never the number</td></tr>
+    <tr><td>Your bank password</td><td>Never read. NoScam sees that a password field exists, not what is in it</td></tr>
+    <tr><td>The one-line advice on a blocked screen</td><td>Sent to Google’s Gemini if you supply an API key. Leave it out and NoScam uses its own wording instead</td></tr>
+    <tr><td>Links you ask it to check</td><td>Fetched from your computer, so that website sees a visit from your address — the same as if you had opened it, minus your cookies</td></tr>
+  </table>
+
+  <h2>Questions people ask</h2>
+
+  <details>
+    <summary>Will it stop me doing normal things?</summary>
+    <p>Mostly no, and that is measured rather than promised: in the table above, ten of
+      fifteen ordinary actions pass untouched. The ones it slows are the genuinely unusual
+      ones — the first payment to somebody new, or setting up a charge that repeats
+      forever. Adding your regular payees during setup removes most of the friction.</p>
+  </details>
+
+  <details>
+    <summary>What if I disagree with it?</summary>
+    <p>Every screen has “continue anyway”, and it always works. This is deliberate: a
+      control you cannot get past is a control people switch off, and then it protects
+      nothing. Overrides are written down and shown in the week’s history, so the household
+      can talk about them afterwards.</p>
+  </details>
+
+  <details>
+    <summary>Does it work on my phone?</summary>
+    <p>Partly, and honestly: your phone can check any link you paste or share with it, and
+      it is the second device that approves things happening on the computer. It cannot yet
+      intercept a tap inside WhatsApp — that needs a native app, which is written up in the
+      project’s shipping notes. On iPhone, Apple does not allow apps into the Share menu at
+      all, so pasting is the way in.</p>
+  </details>
+
+  <details>
+    <summary>Is an AI deciding whether my payment goes through?</summary>
+    <p>No. Every decision is made by fixed rules that always produce the same answer for
+      the same situation. A language model writes one sentence of advice on the screen and
+      has no other power — there is a test in the repository asserting that the outcome is
+      identical even when the model is told to say the payment is safe.</p>
+  </details>
+
+  <details>
+    <summary>Who is this for?</summary>
+    <p>Anyone who moves money on a computer, but especially households where one person
+      sets things up for another — a parent living alone, someone new to digital payments,
+      anyone likely to be called by a stranger claiming to be their bank. The “second
+      person” in the design is usually an adult child.</p>
+  </details>
+
+  <details>
+    <summary>What does it not protect me from?</summary>
+    <p>It does not protect a phone at the operating-system level, cannot help once a
+      machine is already compromised, and does not scan for viruses. It is a control on the
+      moment before money moves, not a security suite. The full list of limits is published
+      in the repository, written before the demo so nothing in the demo is a surprise.</p>
+  </details>
+
+  <details>
+    <summary>Is it finished?</summary>
+    <p>No. It works, it is tested — 114 automated tests run on every change — and the
+      mechanism is proven end to end, including against a real payment page built by people
+      with no connection to the project. What it has not had is months in real households,
+      or coverage of every bank’s website. That work is described openly rather than
+      implied to be done.</p>
+  </details>
+
+  <h2>Get it</h2>
+  <div class="cta">
+    <a class="primary" href="https://github.com/Aditya-galaxy/noscam/archive/refs/heads/main.zip">Download NoScam</a>
+    <a class="secondary" href="https://github.com/Aditya-galaxy/noscam">Source code</a>
+    <a class="secondary" href="https://github.com/Aditya-galaxy/noscam/blob/main/LIMITATIONS.md">What it can’t do</a>
+  </div>
+
+</main>
+
+<footer class="wrap">
+  Built for the TLN Cybersecurity Challenge 2026. MIT licensed — free to use, read and
+  change. The demo video’s narration is synthesised; every frame of it is the real product
+  running on a real machine.
+</footer>
+
+</body>
+</html>
