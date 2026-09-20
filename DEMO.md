@@ -33,6 +33,13 @@ Nothing has been sent yet."* A moment later, the advice line.
 Say out loud: the page is convincing, the urgency is real, and none of that
 mattered — what mattered is that a message is what sent them here.
 
+## Scene 1b — the page gives itself away (1:20)
+
+Open the fake bank link again from the message. Before anything is typed, the
+page is called out on arrival: *"This page is pretending to be someone else."*
+On the phone it appears as **stopped for them** — with no approve button,
+because a refusal is not a request.
+
 ## Scene 2 — the second device (1:40)
 
 1. Press **Ask Priya to approve**.
@@ -50,15 +57,29 @@ It cannot press this button.
 
 Say out loud: this is the half that decides whether anyone keeps it installed.
 
-## Scene 4 — the other two endings (3:00)
+## Scene 4 — the other ways money leaves (3:00)
 
-- **Install**: back in the message, click `sbi-support.apk`. With the extension
-  loaded, the download is cancelled before it lands.
-- **Link check**: on the phone, paste
-  `https://hdfcbank.secure-verify.example/login` → *"The name 'hdfcbank'
-  appears in the address, but the real site is 'secure-verify.example'. Those
-  are different companies."* → **Report this site** blocks it for everyone in
-  the household.
+Pick two or three; they are fast, and the point is that a scam only has to find
+one channel.
+
+- **Gift cards**: back in the message, click the gift-card link and press *Buy
+  gift card* → **"Nobody legitimate is ever paid in gift cards."** No tax
+  office, bank, police force or utility takes payment this way.
+- **Install**: click `sbi-support.apk`. With the extension loaded, the download
+  is cancelled before it lands.
+- **Identity numbers**: type a card or Aadhaar number into the fake page →
+  refused, with the line that matters: unlike a password, you cannot change it
+  afterwards. The number itself never leaves the page — only the *kind* is sent
+  to the local service.
+- **UPI collect request**: on the phone, paste
+  `upi://pay?pa=refund.dept@okaxis&pn=HDFC%20Bank%20Refund&am=` →
+  *"Approving this sends money from your account. Receiving money on UPI never
+  needs your approval or your PIN."* Plus: the amount is blank, so the sender
+  decides how much; and it says HDFC Bank while the money goes to an Axis
+  handle.
+- **Link check**: paste `https://hdfcbank.secure-verify.example/login` →
+  *"The name 'hdfcbank' appears in the address, but the real site is
+  'secure-verify.example'."* → **Report this site** blocks it for the household.
 
 ## Scene 5 — the numbers and the limits (3:40)
 

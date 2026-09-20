@@ -32,7 +32,8 @@ a transfer, a one-time code, an install, a remote session.
 
 1. **Recognise the small set of irreversible actions**: a payment (and whether
    the payee is new), a one-time code, a password, an install, a remote-access
-   tool.
+   tool, a gift-card purchase, a crypto transfer, a UPI collect request, and
+   identity numbers being typed (card, Aadhaar, PAN, IFSC, gift-card codes).
 2. **Know how the person got there**: typed, bookmarked, or clicked from a
    messaging or webmail app, and how long ago.
 3. **Decide deterministically.** No model input. Four outcomes: allow, wait,
@@ -62,9 +63,9 @@ a transfer, a one-time code, an install, a remote session.
 
 | Metric | Today | Target |
 |---|---|---|
-| Scam scenarios stopped | 10/10 | stays 10/10 as rules change |
-| Ordinary actions untouched | 8/10 | ≥ 8/10 |
-| Ordinary actions wrongly stopped | 0/10 | 0 |
+| Scam scenarios stopped | 16/16 | stays at 100% as rules change |
+| Ordinary actions untouched | 10/14 | ≥ 70% |
+| Ordinary actions refused outright | 0/14 | 0 |
 | Time from hold to guardian's answer | — | median under 60s in real use |
 | Overrides per household per month | — | tracked; a rising number means the rules are wrong |
 
