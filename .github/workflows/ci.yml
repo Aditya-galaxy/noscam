@@ -1,0 +1,25 @@
+name: tests
+
+# The gate decides whether someone's payment goes through, so "the tests pass"
+# should be a fact anyone can check rather than a claim in a README.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: pip install -r requirements.txt pytest
+      - name: The gate, the link signals, the SSRF refusals, the model's leash
+        run: python -m pytest -q
+      - name: Scams stopped, and what it costs an ordinary household
+        run: python eval/score.py

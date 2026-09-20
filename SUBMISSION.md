@@ -31,6 +31,14 @@ looks fishy. That loses, because the attacker simply writes a better message.
 **NoScam does not judge messages. It refuses to let an instruction that arrived
 through a message authorise something irreversible.**
 
+Every anti-scam extension on the market answers *"is this site known to be
+bad?"* — a question one new domain away from useless. NoScam asks one that does
+not depend on recognising anything: *"did the instruction for this action arrive
+through a channel that is allowed to authorise it?"* Consumer-protection bodies
+all give the same advice — **pause before you pay** — and nobody pauses while a
+stranger is counting down. This is that pause, enforced by software, on the one
+device the caller cannot reach.
+
 A browser extension knows *how you reached a page* — typed, bookmarked, or
 clicked from WhatsApp forty seconds ago. A deterministic gate uses that, plus
 limits the household set when nobody was panicking, to decide what may happen: a
@@ -50,11 +58,16 @@ scam is trivial if you will stop everything, so the scorecard reports both, and
 names every ordinary action it slowed down:
 
 ```
-Scams stopped                        16/16
-Ordinary actions left alone          10/14
-Ordinary actions slowed down          4/14
-Ordinary actions refused outright     0/14
+Scams stopped                        18/18
+Ordinary actions left alone          10/15
+Ordinary actions slowed down          5/15
+Ordinary actions refused outright     0/15
 ```
+
+Every slowed case is printed by name — including a legitimate collect request
+from a tea shop, and subscribing to a streaming service. That is the bill this
+household pays for the protection, and hiding it would make the other number
+meaningless.
 
 ## How we built it
 
@@ -62,12 +75,12 @@ Ordinary actions refused outright     0/14
   accounts, no cloud, no payment data leaving the device.
 - **Chrome MV3 extension** — provenance from `chrome.webNavigation`
   (`transitionType`, `sourceTabId`), remote-access downloads cancelled with
-  `downloads.cancel`, and an overlay in a shadow root so no page can style or
-  suppress it.
+  `downloads.cancel`, click interception in the capture phase so pages that post
+  with `fetch()` are still caught, and the card in a closed shadow root.
 - **A phone web app** (installable PWA, Android share-target) for approvals and
   link checking.
 - **Gemini** for one line of advice, on a short leash.
-- **82 tests** plus a 30-situation scorecard.
+- **95 tests** plus a 33-situation scorecard, both run in CI on Python 3.11 and 3.13.
 
 ## Challenges
 
@@ -86,6 +99,17 @@ Ordinary actions refused outright     0/14
 - **Not becoming the vulnerability.** The link checker fetches URLs, so it
   resolves hosts first and refuses anything private or loopback, re-checks every
   redirect hop, and caps the body.
+- **Attacking our own build, and finding four real holes.** The service listens
+  on loopback, which is not the same as private: any page in the browser could
+  reach it, so the scam page could have *approved the hold raised against
+  itself*, raised the household's limits, or blocklisted the real bank.
+  Mutating endpoints now require an Origin a page cannot forge. We were also
+  gating only form submits — but most real payment pages post with `fetch()`
+  and never fire one, so clicks are now intercepted in the capture phase;
+  there is a demo page with no form at all that exists purely to prove it. The
+  card moved into a closed shadow root so the page cannot delete its buttons,
+  and the approval queue is capped so it cannot be flooded to bury the one
+  request that matters.
 
 ## What we learned
 
@@ -110,7 +134,7 @@ households, because until that exists the accuracy claim stays small.
 
 ```bash
 git clone https://github.com/Aditya-galaxy/noscam && cd noscam
-python3 -m pip install fastapi uvicorn httpx pydantic
+python3 -m pip install -r requirements.txt
 python3 noscam.py
 ```
 

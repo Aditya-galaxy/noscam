@@ -19,6 +19,18 @@ with the RBI reporting digital payment fraud up 34% year on year.
 So NoScam does not try to detect scams. **It refuses to let an instruction that
 arrived through a message authorise something irreversible.**
 
+Every anti-scam extension on the market — Guardio, SafeBrowz, Netcraft,
+Cryptonite — answers the question *"is this site known to be bad?"* That
+question is one new domain away from being useless, and the scam page in the
+demo below is brand new every time. NoScam asks a different question, which
+does not depend on recognising anything: *"did the instruction for this action
+arrive through a channel that is allowed to authorise it?"*
+
+The advice every consumer-protection body gives is
+[pause before you pay](https://globalcyberalliance.org/pause-before-you-pay-a-guide-to-avoiding-money-transfer-scams/).
+Nobody pauses while a stranger on the phone is counting down. This is that pause,
+enforced by software, on the one device the caller cannot reach.
+
 ---
 
 ## What it does
@@ -57,7 +69,7 @@ claim. A real number needs real households, and nobody has used this in one yet.
 ## Run it
 
 ```bash
-python3 -m pip install fastapi uvicorn httpx pydantic
+python3 -m pip install -r requirements.txt
 python3 noscam.py
 ```
 
