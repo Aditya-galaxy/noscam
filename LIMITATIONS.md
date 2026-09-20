@@ -2,14 +2,42 @@
 
 Written before the demo video, so that nothing in the video is a surprise.
 
-## It does not protect a phone at the OS level
+## It does not intercept the tap on a phone
 
-A web app cannot read your SMS, cannot stop an APK from installing, and cannot
-see what another app is doing. On a phone, NoScam does two honest things: it
-checks a link you paste or share with it, and it is the second device that has
-to approve something happening on the computer. Anything more would need a
-native app with accessibility permissions — which is, incidentally, exactly what
-the scam apps ask for.
+There are three levels of protection on a phone, and NoScam is at the first two:
+
+| | What it does | Here? |
+|---|---|---|
+| **Paste a link** | check it before you tap | **yes**, any phone, no setup |
+| **Share → NoScam** | two taps from inside WhatsApp | **yes** on Android Chrome, once added to the home screen — the app registers as a Web Share Target |
+| **Intercept the tap itself** | Android offers NoScam when any link is tapped | **no** |
+
+The third needs a native app. On Android it is small and entirely standard: an
+activity with an `intent-filter` for `http`/`https` `VIEW` intents, so tapping a
+link in any app offers NoScam alongside Chrome. NoScam runs the same gate,
+then either hands the URL to the browser or refuses it. That app would also be
+the place for SMS-side provenance and for cancelling an install — the two things
+a web app fundamentally cannot see.
+
+On **iOS there is no equivalent**. Apple does not let an app join the Share menu
+as a link target or intercept a tap; the closest is a Safari Web Extension,
+which runs our content script inside Safari only and requires Xcode and App
+Store review. So on iPhone, pasting stays the way in, and the phone's real job
+is being the second device that approves.
+
+Two other device-wide options we have deliberately *not* taken:
+
+- **An accessibility service** could read every screen and stop anything. It is
+  also precisely the permission the scam apps ask for, and teaching people to
+  grant it is teaching them the habit that gets them robbed.
+- **A VPN or Private DNS filter** would block reported hosts on the whole device
+  with no app at all, but it needs a hosted resolver and a domain, and it can
+  only block by hostname — it cannot see a payment about to happen.
+
+Neither is built. Both are honest roadmap, not claims.
+
+A web app also cannot read your SMS, which is why a link that arrives by text
+and is typed in by hand looks clean to the gate.
 
 ## It does not clean a machine that is already compromised
 

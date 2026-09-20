@@ -179,6 +179,39 @@ if (shared) {
   checkLink(shared);
 }
 
+// --- getting the share sheet -----------------------------------------------
+// Pasting works everywhere and needs no setup, so it stays the main path. But
+// two taps from inside WhatsApp beats switching apps and pasting, and the only
+// way to get there is for the person to add this to their home screen — which
+// nobody discovers on their own.
+
+(function offerInstall() {
+  const card = $("install-card");
+  const installed = window.matchMedia("(display-mode: standalone)").matches
+    || window.navigator.standalone === true;
+  let dismissed = false;
+  try { dismissed = localStorage.getItem("noscam:install-dismissed") === "1"; } catch { }
+  if (installed || dismissed) return;
+
+  const android = /Android/i.test(navigator.userAgent);
+  const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const how = $("install-how");
+  if (android) {
+    how.textContent = "Chrome menu (⋮) → Add to Home screen.";
+  } else if (ios) {
+    // Safari has no share-target, so promising one would be a lie.
+    how.textContent = "On iPhone: Share → Add to Home Screen. Apple doesn't let "
+                    + "apps join the Share menu, so pasting stays the way in.";
+  } else {
+    return;                       // a desktop browser is not who this is for
+  }
+  card.hidden = false;
+  $("install-dismiss").addEventListener("click", () => {
+    card.hidden = true;
+    try { localStorage.setItem("noscam:install-dismissed", "1"); } catch { }
+  });
+})();
+
 // --- limits ----------------------------------------------------------------
 
 async function loadHousehold() {

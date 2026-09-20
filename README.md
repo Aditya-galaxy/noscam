@@ -115,8 +115,11 @@ happened" survives the argument afterwards.
 - **`extension/`** — Chrome MV3. Provenance from `webNavigation`, remote-access
   downloads cancelled via `downloads.cancel`, and an overlay that explains
   rather than scolds. The same content script runs standalone for the demo.
-- **`web/`** — the phone: approvals, link checking, limits. Installable, and on
-  Android it registers as a share target so a link can be sent straight to it.
+- **`web/`** — the phone: approvals, link checking, limits. Paste a link
+  anywhere; on Android, add it to the home screen and it joins the Share menu,
+  so a suspicious link is two taps from inside WhatsApp. Intercepting the tap
+  itself needs a native app — see [LIMITATIONS.md](LIMITATIONS.md), which says
+  exactly what that would take on each platform.
 
 ### Built for the person it is for
 
