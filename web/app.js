@@ -50,7 +50,7 @@ function renderApprovals(holds) {
     box.innerHTML = `
       <div class="empty">
         <strong>Nothing waiting</strong>
-        A card appears here the moment something is held.
+        You'll see a card here the moment something is paused.
       </div>`;
     return;
   }
@@ -69,23 +69,25 @@ function renderApprovals(holds) {
       Math.max(0, hold.seconds_remaining % 60)).padStart(2, "0")}`;
     // A refusal is something the household is told about, not asked about.
     // Offering "allow" on one would be inviting the next move in the scam.
+    // A refusal is something the household is told about, not asked about.
+    // Offering "allow" on one would be inviting the next move in the scam.
     const buttons = hold.approvable === false ? `
-          <p class="meta">Stopped on their computer. Nothing for you to do.</p>` : `
-          <div class="row">
-            <button class="action deny" data-verdict="deny">No, stop it</button>
-            <button class="action approve" data-verdict="approve">Yes, allow</button>
-          </div>`;
-    const label = hold.approvable === false ? "Stopped for them" : "Waiting for you";
+        <p class="meta">Already stopped. Nothing for you to do.</p>` : `
+        <div class="row">
+          <button class="action deny" data-verdict="deny">No, stop it</button>
+          <button class="action approve" data-verdict="approve">Yes, allow</button>
+        </div>`;
+    const label = hold.approvable === false
+      ? "Stopped on their computer"
+      : `Waiting for you · ${clock} left`;
     return `
       <div class="card" data-id="${hold.id}">
-        <div class="bar"><span>${label}</span><span>expires ${clock}</span></div>
-        <div class="body">
-          <h2>${hold.decision.headline}</h2>
-          <p>${hold.decision.detail}</p>
-          <p class="meta">${amount ? amount + payee : action.file_name || action.type || ""}<br>
-             ${action.host || "their computer"}</p>
-          ${buttons}
-        </div>
+        <span class="tag">${label}</span>
+        <h2>${hold.decision.headline}</h2>
+        <p>${hold.decision.detail}</p>
+        <p class="meta">${amount ? amount + payee : action.file_name || action.type || ""}<br>
+           ${action.host || "their computer"}</p>
+        ${buttons}
       </div>`;
   }).join("");
 
@@ -95,9 +97,9 @@ function renderApprovals(holds) {
       const verdict = button.dataset.verdict;
       try {
         await api(`/holds/${id}/decision`, { verdict, by: guardianName });
-        toast(verdict === "approve" ? "Allowed" : "Stopped");
+        toast(verdict === "approve" ? "Allowed." : "Stopped.");
       } catch {
-        toast("Couldn't reach the household");
+        toast("Couldn't reach the computer.");
       }
       lastSeen = "";
       refresh();
@@ -122,7 +124,7 @@ async function refresh() {
 async function checkLink(raw) {
   const url = (raw || "").trim();
   if (!url) return;
-  $("verdict").innerHTML = `<div class="verdict no_signals"><h3>Checking</h3></div>`;
+  $("verdict").innerHTML = `<div class="verdict"><h3>Checking…</h3></div>`;
   let result;
   try {
     result = await api("/links/check", { url });
@@ -156,7 +158,7 @@ async function checkLink(raw) {
 
   $("report").addEventListener("click", async () => {
     await api("/links/report", { url: result.final_url || result.url });
-    toast("Reported — the whole household is now warned");
+    toast("Reported. Everyone at home is now warned.");
     loadHousehold();
   });
 }
@@ -183,9 +185,7 @@ async function loadHousehold() {
   const household = await api("/household");
   const limits = household.limits;
   guardianName = limits.guardian_name;
-  $("household-line").textContent = `${household.name} · ${limits.guardian_name} approves`;
-  const badge = document.getElementById("spent-badge");
-  if (badge) badge.textContent = `${money(household.spent_today)} today`;
+  $("household-line").textContent = `${limits.guardian_name} approves`;
   $("l-per").textContent = money(limits.per_transaction_cap);
   $("l-day").textContent = money(limits.daily_cap);
   $("l-spent").textContent = money(household.spent_today);
@@ -206,7 +206,7 @@ $("save").addEventListener("click", async () => {
     daily_cap: Number($("day").value),
     guardian_name: $("guardian").value || "your guardian",
   }, "PUT");
-  toast("Limits saved");
+  toast("Saved.");
   loadHousehold();
 });
 

@@ -132,73 +132,59 @@
     root.innerHTML = `
       <style>
         :host { all: initial; }
-        .veil { position: fixed; inset: 0; background: rgba(6, 6, 8, .82);
-                backdrop-filter: blur(18px) saturate(120%);
-                -webkit-backdrop-filter: blur(18px) saturate(120%);
-                display: grid; place-items: center; padding: 24px;
-                font: 16px/1.5 ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif;
-                color: #f4f4f5; }
-        .card { width: min(560px, 100%); background: rgba(20, 20, 23, .72);
-                backdrop-filter: blur(26px) saturate(140%);
-                -webkit-backdrop-filter: blur(26px) saturate(140%);
-                border: 1px solid rgba(255,255,255,.16); border-radius: 4px;
-                box-shadow: inset 0 1px 0 rgba(255,255,255,.14), 0 40px 90px rgba(0,0,0,.6);
-                padding: 0; overflow: hidden; }
-        .bar { display: flex; align-items: center; justify-content: space-between;
-               padding: 12px 22px; border-bottom: 1px solid rgba(255,255,255,.12);
-               font: 600 11px/1 ui-monospace, "SF Mono", Menlo, monospace;
-               letter-spacing: .18em; text-transform: uppercase; color: #a1a1aa; }
-        .bar b { color: #fff; font-weight: 700; }
-        .body { padding: 26px 22px 22px; }
-        h2 { font-size: 27px; line-height: 1.15; letter-spacing: -.02em; font-weight: 650;
-             margin: 0 0 12px; color: #fff; }
-        p { font-size: 17px; margin: 0 0 16px; color: #d4d4d8; }
-        .advice { font: 16px/1.5 ui-sans-serif, system-ui, sans-serif; color: #fff;
-                  border-left: 2px solid #fff; padding: 2px 0 2px 14px; margin: 0 0 18px; }
-        .row { display: flex; flex-direction: column; gap: 10px; margin-top: 22px; }
-        button { font: 600 15px/1 ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif;
-                 letter-spacing: .06em; text-transform: uppercase; padding: 16px 18px;
-                 border-radius: 2px; border: 1px solid transparent; cursor: pointer; }
-        .primary { background: #fff; color: #09090b; }
-        .primary[disabled] { background: rgba(255,255,255,.22); color: rgba(255,255,255,.65);
+        .veil { position: fixed; inset: 0; background: rgba(0, 0, 0, .55);
+                display: grid; place-items: center; padding: 20px;
+                font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                      Helvetica, Arial, sans-serif; color: #000; }
+        .card { width: min(480px, 100%); background: #fff; border-radius: 12px;
+                box-shadow: 0 12px 40px rgba(0,0,0,.28); overflow: hidden; }
+        .bar { display: flex; align-items: center; gap: 8px; padding: 14px 24px;
+               border-bottom: 1px solid #eaeaea; font-size: 13px; color: #666; }
+        .bar b { color: #000; font-weight: 600; }
+        .body { padding: 24px; }
+        h2 { font-size: 22px; line-height: 1.3; font-weight: 600; margin: 0 0 10px;
+             letter-spacing: -.01em; }
+        h2:focus { outline: none; }
+        p { font-size: 16px; margin: 0 0 16px; color: #444; }
+        .advice { background: #fafafa; border: 1px solid #eaeaea; border-radius: 8px;
+                  padding: 14px 16px; margin: 0 0 16px; color: #000; font-size: 15px; }
+        .row { display: flex; flex-direction: column; gap: 8px; margin-top: 20px; }
+        button { font: 500 15px/1 inherit; padding: 14px 20px; border-radius: 8px;
+                 border: 1px solid transparent; cursor: pointer; }
+        .primary { background: #000; color: #fff; }
+        .primary[disabled] { background: #fafafa; color: #999; border-color: #eaeaea;
                              cursor: default; }
-        .secondary { background: transparent; color: #fff; border-color: rgba(255,255,255,.35); }
-        .quiet { background: transparent; color: #8a8a93; font-size: 12px; letter-spacing: .08em;
-                 text-decoration: underline; border: 0; padding: 8px; }
-        .status { margin-top: 16px; font: 12px/1.4 ui-monospace, "SF Mono", Menlo, monospace;
-                  letter-spacing: .08em; text-transform: uppercase; color: #a1a1aa;
-                  min-height: 18px; }
-        .mark { margin: 18px 0 0; padding-top: 14px; border-top: 1px solid rgba(255,255,255,.12);
-                font-size: 12px; color: #71717a; }
-        button:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
-        .secondary:focus-visible, .quiet:focus-visible { outline-color: #fff; }
+        .secondary { background: #fff; color: #000; border-color: #eaeaea; }
+        .secondary:hover { border-color: #999; }
+        .quiet { background: none; border: 0; color: #666; font-size: 13px; padding: 8px;
+                 text-decoration: underline; cursor: pointer; }
+        .status { margin-top: 14px; font-size: 14px; color: #666; min-height: 20px; }
+        .mark { margin: 18px 0 0; padding-top: 16px; border-top: 1px solid #eaeaea;
+                font-size: 13px; color: #888; }
+        button:focus-visible { outline: 2px solid #000; outline-offset: 2px; }
         @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
-        @media (prefers-contrast: more) {
-          .card { background: #000; border-color: #fff; }
-          p, .status { color: #fff; }
-        }
+        @media (prefers-contrast: more) { p, .status, .bar { color: #000; } }
       </style>
       <div class="veil">
         <div class="card" role="alertdialog" aria-modal="true"
              aria-labelledby="noscam-title" aria-describedby="noscam-detail">
-          <div class="bar"><span><b>NoScam</b></span><span class="kind">on hold</span></div>
+          <div class="bar"><b>NoScam</b><span class="kind"></span></div>
           <div class="body">
             <h2 id="noscam-title" tabindex="-1"></h2>
             <p id="noscam-detail"></p>
             <div class="row">
               <button class="primary"></button>
-              <button class="secondary">Cancel — don't do this</button>
-              <button class="quiet">I'm sure. Continue anyway</button>
+              <button class="secondary">Cancel</button>
+              <button class="quiet">Continue anyway</button>
             </div>
             <div class="status" role="status" aria-live="polite"></div>
-            <p class="mark">Nothing has been sent. Decided on this computer, and written
-              down so you can check it later.</p>
+            <p class="mark">Nothing has been sent.</p>
           </div>
         </div>
       </div>`;
 
-    const kinds = { blocked: "blocked", needs_approval: "on hold",
-                    cool_off: "waiting" };
+    const kinds = { blocked: "stopped this", needs_approval: "paused this",
+                    cool_off: "paused this" };
     root.querySelector(".kind").textContent = kinds[decision.disposition] || "on hold";
     root.querySelector("h2").textContent = decision.headline;
     root.querySelector("p").textContent = decision.detail;
