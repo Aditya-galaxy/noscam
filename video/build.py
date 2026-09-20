@@ -46,7 +46,13 @@ SCENES = {
     "limits-and-close": "04-held-advice",
 }
 # A second picture inside one line, for the ones that cover two things.
-SPLITS = {"other-vectors": ("08-giftcards", "09-phone-upi")}
+SPLITS = {
+    "other-vectors": ("08-giftcards", "09-phone-upi"),
+    # The last line is the honest one about limits, then where to get it. The
+    # address belongs on screen while it is said, not in a separate tour of a
+    # web page that would spend demo time on something other than the product.
+    "limits-and-close": ("04-held-advice", "12-endcard"),
+}
 
 
 def wav_seconds(path: Path) -> float:
