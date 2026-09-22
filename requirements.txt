@@ -1,6 +1,7 @@
-# NoScam runs on the person's own machine. Four dependencies, no database,
+# NoScam runs on the person's own machine. Five dependencies, no database,
 # no cloud, no account system.
 fastapi>=0.110
 uvicorn>=0.27
 pydantic>=2.5
 httpx>=0.26
+cryptography>=42.0
