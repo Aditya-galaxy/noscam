@@ -12,15 +12,110 @@
 // The token arrives once, in the link the phone opens, and is kept from then on.
 // It is what distinguishes this household's phone from everything else on the
 // same Wi-Fi, which the browser cannot tell apart on its own.
-const token = (() => {
-  const fromLink = new URLSearchParams(location.search).get("t");
-  if (fromLink) {
-    try { localStorage.setItem("noscam:token", fromLink); } catch { }
-    history.replaceState(null, "", location.pathname);   // keep it out of the address bar
-    return fromLink;
+const { token, relayChannel, relayKey } = (() => {
+  const params = new URLSearchParams(location.search);
+  const fromLink = params.get("t");
+  const r = params.get("r");
+  const k = params.get("k");
+
+  if (r && k) {
+    try {
+      localStorage.setItem("noscam:relay_channel", r);
+      localStorage.setItem("noscam:relay_key", k);
+    } catch {}
   }
-  try { return localStorage.getItem("noscam:token") || ""; } catch { return ""; }
+  if (fromLink) {
+    try { localStorage.setItem("noscam:token", fromLink); } catch {}
+  }
+  if (r || k || fromLink) {
+    history.replaceState(null, "", location.pathname); // keep secrets out of the address bar
+  }
+
+  return {
+    token: fromLink || (localStorage.getItem("noscam:token") || ""),
+    relayChannel: r || (localStorage.getItem("noscam:relay_channel") || ""),
+    relayKey: k || (localStorage.getItem("noscam:relay_key") || ""),
+  };
 })();
+
+// Web Crypto AES-256-GCM functions for zero-cloud E2EE communication
+async function decryptRelayPayload(keyHex, base64Wire) {
+  const keyBytes = new Uint8Array(keyHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+  const wireBytes = Uint8Array.from(atob(base64Wire), c => c.charCodeAt(0));
+  const iv = wireBytes.slice(0, 12);
+  const data = wireBytes.slice(12);
+
+  const cryptoKey = await window.crypto.subtle.importKey(
+    "raw", keyBytes, "AES-GCM", false, ["decrypt"]
+  );
+  const decrypted = await window.crypto.subtle.decrypt(
+    { name: "AES-GCM", iv }, cryptoKey, data
+  );
+  return JSON.parse(new TextDecoder().decode(decrypted));
+}
+
+async function encryptRelayPayload(keyHex, obj) {
+  const keyBytes = new Uint8Array(keyHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+  const iv = window.crypto.getRandomValues(new Uint8Array(12));
+  const dataBytes = new TextEncoder().encode(JSON.stringify(obj));
+
+  const cryptoKey = await window.crypto.subtle.importKey(
+    "raw", keyBytes, "AES-GCM", false, ["encrypt"]
+  );
+  const encrypted = await window.crypto.subtle.encrypt(
+    { name: "AES-GCM", iv }, cryptoKey, dataBytes
+  );
+
+  const combined = new Uint8Array(12 + encrypted.byteLength);
+  combined.set(iv, 0);
+  combined.set(new Uint8Array(encrypted), 12);
+
+  let binary = "";
+  for (let i = 0; i < combined.byteLength; i++) {
+    binary += String.fromCharCode(combined[i]);
+  }
+  return btoa(binary);
+}
+
+async function sendRemoteVerdict(holdId, verdict) {
+  if (!relayChannel || !relayKey) return false;
+  try {
+    const payload = {
+      hold_id: holdId,
+      verdict: verdict === "approve" ? "approve" : "deny",
+      timestamp: Date.now(),
+    };
+    const ciphertext = await encryptRelayPayload(relayKey, payload);
+    const resp = await fetch(`https://ntfy.sh/noscam_reply_${relayChannel}`, {
+      method: "POST",
+      body: ciphertext,
+    });
+    return resp.ok;
+  } catch {
+    return false;
+  }
+}
+
+const remoteHolds = new Map();
+
+if (relayChannel && relayKey && typeof EventSource !== "undefined") {
+  try {
+    const sse = new EventSource(`https://ntfy.sh/noscam_hold_${relayChannel}/sse`);
+    sse.onmessage = async (e) => {
+      try {
+        const msg = JSON.parse(e.data);
+        if (msg.message) {
+          const hold = await decryptRelayPayload(relayKey, msg.message);
+          if (hold && hold.id) {
+            remoteHolds.set(hold.id, hold);
+            renderApprovals([...remoteHolds.values()]);
+            toast("New action waiting for approval.");
+          }
+        }
+      } catch {}
+    };
+  } catch {}
+}
 
 const api = (path, body, method) =>
   fetch(path.startsWith("http") ? path : `..${path}`, {
@@ -118,10 +213,20 @@ function renderApprovals(holds) {
     button.addEventListener("click", async () => {
       const id = button.closest(".card").dataset.id;
       const verdict = button.dataset.verdict;
+      let sent = false;
       try {
         await api(`/holds/${id}/decision`, { verdict, by: guardianName });
-        toast(verdict === "approve" ? "Allowed." : "Stopped.");
+        sent = true;
       } catch {
+        // Direct API call failed (e.g. phone is on remote LTE network)
+      }
+      if (!sent && relayChannel && relayKey) {
+        sent = await sendRemoteVerdict(id, verdict);
+      }
+      if (sent) {
+        remoteHolds.delete(id);
+        toast(verdict === "approve" ? "Allowed." : "Stopped.");
+      } else {
         toast("Couldn't reach the computer.");
       }
       lastSeen = "";
@@ -134,11 +239,16 @@ let guardianName = "Guardian";
 
 async function refresh() {
   try {
-    renderApprovals(await api("/holds?status=pending"));
+    const local = await api("/holds?status=pending");
+    renderApprovals(local);
   } catch {
-    $("approvals").innerHTML =
-      `<div class="empty"><strong>Not connected</strong>
-       Start NoScam on the computer it protects.</div>`;
+    if (remoteHolds.size > 0) {
+      renderApprovals([...remoteHolds.values()]);
+    } else {
+      $("approvals").innerHTML =
+        `<div class="empty"><strong>Not connected</strong>
+         Start NoScam on the computer it protects.</div>`;
+    }
   }
 }
 
@@ -350,6 +460,37 @@ async function loadHousehold() {
       toast("Removed.");
       loadHousehold();
     });
+  }
+
+  // Remote Pairing status and actions
+  const pStatus = $("pairing-status");
+  if (pStatus) {
+    if (relayChannel && relayKey) {
+      pStatus.textContent = `Status: ● Paired via E2EE Remote Relay`;
+      pStatus.style.color = "#008000";
+    } else {
+      pStatus.textContent = "Status: Local LAN Mode";
+      pStatus.style.color = "";
+    }
+  }
+
+  const showQrBtn = $("show-qr-btn");
+  if (showQrBtn) {
+    showQrBtn.onclick = async () => {
+      try {
+        const pairData = await api("/household/pairing");
+        const fullUrl = `${location.origin}${pairData.pairing_url}`;
+        $("pairing-link").value = fullUrl;
+        $("qr-container").style.display = "block";
+        showQrBtn.textContent = "Copy Pairing Link";
+        showQrBtn.onclick = () => {
+          navigator.clipboard.writeText(fullUrl).catch(() => {});
+          toast("Pairing link copied!");
+        };
+      } catch {
+        toast("Could not retrieve pairing data.");
+      }
+    };
   }
 }
 

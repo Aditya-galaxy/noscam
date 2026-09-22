@@ -14,12 +14,34 @@
 
 (() => {
   const AMOUNT = /amount|value|sum|rupees|inr|usd/i;
+  const CURRENCY_AMOUNT = /([\$£€₹¥]\s*[\d,]+(\.\d+)?|\b[\d,]+(\.\d+)?\s*(usd|inr|eur|gbp|cad|aud)\b)/i;
   const PAYEE = /payee|beneficiary|recipient|to_?name|payto|upi|vpa/i;
   const OTP = /otp|one.?time|verification.?code|passcode|mfa|2fa/i;
 
   let overlayHost = null;
   let pollTimer = null;
   let countdownTimer = null;
+
+  // Listen in the root window for delegation from nested payment iframes (Stripe, Razorpay, PayPal)
+  if (typeof window !== "undefined" && window === window.top) {
+    window.addEventListener("message", (event) => {
+      if (!event.data || event.data.noscam !== true) return;
+      if (event.data.kind === "noscam:child_hold") {
+        const { requestId, decision } = event.data;
+        showOverlay(decision, {
+          onContinue: () => {
+            try {
+              event.source.postMessage({
+                noscam: true,
+                kind: "noscam:child_resume",
+                requestId,
+              }, "*");
+            } catch {}
+          },
+        });
+      }
+    });
+  }
 
   // The same file runs in two places. Inside the extension it messages the
   // service worker, which holds the real provenance. Loaded straight into a page
@@ -319,6 +341,43 @@
     if (!reply.ok) return proceed();          // service down: never break the page
     const decision = reply.data;
     if (decision.disposition === "allow") return proceed();
+
+    // If running inside a child iframe, delegate the modal overlay to the top-level window
+    // so it is not cramped or clipped inside a small checkout widget.
+    if (typeof window !== "undefined" && window !== window.top) {
+      const requestId = "req_" + Math.random().toString(36).slice(2);
+      let resumed = false;
+
+      const onResume = (event) => {
+        if (!event.data || event.data.noscam !== true) return;
+        if (event.data.kind === "noscam:child_resume" && event.data.requestId === requestId) {
+          resumed = true;
+          window.removeEventListener("message", onResume);
+          proceed();
+        }
+      };
+      window.addEventListener("message", onResume);
+
+      try {
+        window.top.postMessage({
+          noscam: true,
+          kind: "noscam:child_hold",
+          requestId,
+          decision,
+        }, "*");
+
+        // Fallback: If top window does not respond (e.g. strict sandbox), show locally after 1s
+        setTimeout(() => {
+          if (!resumed) {
+            showOverlay(decision, { onContinue: proceed });
+          }
+        }, 1200);
+        return;
+      } catch {
+        // window.top postMessage failed, fall back to local overlay
+      }
+    }
+
     showOverlay(decision, { onContinue: proceed });
   };
 
@@ -386,21 +445,27 @@
                      || button.getAttribute("title") || "");
       const form = button.closest("form");
       const scope = form || document;
-      const hasAmount = [...scope.querySelectorAll("input")].some((input) =>
+      const hasAmountInput = [...scope.querySelectorAll("input")].some((input) =>
         AMOUNT.test(`${input.name} ${input.id} ${input.placeholder || ""}`) ||
         input.type === "number");
+      const hasAmountInButton = CURRENCY_AMOUNT.test(label);
+      const hasAmount = hasAmountInput || hasAmountInButton;
       if (!hasAmount) return;             // a "continue" button on an article is not a payment
 
       // The label is the usual signal, but plenty of real payment buttons are an
       // icon with no text at all. A submit button inside a form that takes an
       // amount is a payment button whatever it says, or doesn't.
       const submits = button.type === "submit" || button.tagName === "BUTTON" && form;
-      if (!PAY_WORDS.test(label) && !(submits && !label.trim())) return;
+      if (!PAY_WORDS.test(label) && !(submits && !label.trim()) && !hasAmountInButton) return;
 
       event.preventDefault();
       event.stopImmediatePropagation();
 
-      const rawAmount = fieldValue(scope, AMOUNT).replace(/[^\d.]/g, "");
+      let rawAmount = fieldValue(scope, AMOUNT).replace(/[^\d.]/g, "");
+      if (!rawAmount && hasAmountInButton) {
+        const match = label.match(/[\$£€₹¥]\s*([\d,]+(\.\d+)?)|([\d,]+(\.\d+)?)\s*(usd|inr|eur|gbp|cad|aud)/i);
+        if (match) rawAmount = (match[1] || match[3] || "").replace(/,/g, "");
+      }
       const payee = fieldValue(scope, PAYEE);
       const page = (scope.innerText || "") + " " + document.title;
       let kind = "payment";

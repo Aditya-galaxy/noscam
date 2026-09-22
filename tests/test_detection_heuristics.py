@@ -92,3 +92,26 @@ def test_an_icon_button_inside_a_payment_form_is_still_gated() -> None:
     source = CONTENT_JS.read_text(encoding="utf-8")
     assert 'const submits = button.type === "submit"' in source
     assert "!(submits && !label.trim())" in source
+
+
+def test_currency_amount_in_button_labels_are_recognised() -> None:
+    """Buttons on modern checkouts often carry the amount directly on the button."""
+    found = matches(pattern("CURRENCY_AMOUNT"), [
+        "Pay $25.00",
+        "Donate ₹500",
+        "Pay £10.50",
+        "Send €100",
+        "Checkout 50 USD",
+        "Transfer 1000 INR",
+        "Search Google",
+        "Read more",
+    ])
+    assert found["Pay $25.00"] is True
+    assert found["Donate ₹500"] is True
+    assert found["Pay £10.50"] is True
+    assert found["Send €100"] is True
+    assert found["Checkout 50 USD"] is True
+    assert found["Transfer 1000 INR"] is True
+    assert found["Search Google"] is False
+    assert found["Read more"] is False
+

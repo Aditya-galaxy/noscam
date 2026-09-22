@@ -32,7 +32,7 @@ VERSION = "1.0.0"
 # What it takes to run: the gate, the phone app, the extension, the stand-in
 # sites that let you watch it work, and the launcher that starts all of them.
 SHIP = ["noscam.py", "requirements.txt", "Start NoScam.command",
-        "service", "web", "extension", "demo",
+        "service", "web", "extension", "demo", "scripts",
         "LICENSE", "LIMITATIONS.md"]
 
 INSTALL = """NoScam — a message cannot authorise your money.
@@ -71,7 +71,7 @@ WHAT IT CANNOT DO
 def tracked(paths: list[str]) -> list[Path]:
     """Ask git what exists. The working directory also holds the live
     household, which must never end up in a download."""
-    listing = subprocess.run(["git", "ls-files", "-z", *paths],
+    listing = subprocess.run(["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z", *paths],
                              cwd=HERE, capture_output=True, text=True, check=True)
     return [Path(name) for name in listing.stdout.split("\0") if name]
 
@@ -94,6 +94,17 @@ def main() -> int:
     # Say what went in, so a mistake here is visible rather than shipped.
     size = archive.stat().st_size
     print(f"  {archive}  ({size / 1_000_000:.1f} MB, {len(files) + 1} files)\n")
+
+    # Extension zip ready for Chrome Web Store / Firefox AMO submission
+    ext_archive = DIST / "noscam-extension.zip"
+    ext_files = [f for f in files if str(f).startswith("extension/")]
+    if ext_files:
+        with zipfile.ZipFile(ext_archive, "w", zipfile.ZIP_DEFLATED) as ext_bundle:
+            for name in ext_files:
+                rel = name.relative_to("extension")
+                ext_bundle.write(HERE / name, str(rel))
+        print(f"  {ext_archive}  ({ext_archive.stat().st_size / 1_000:.1f} KB, ready for Web Store upload)\n")
+
     for name in sorted({str(f).split("/")[0] for f in files}):
         print(f"    {name}")
     print("\n  Excluded: the film, its frames, the tests, the scorecard, the")

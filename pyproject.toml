@@ -13,6 +13,15 @@ dependencies = [
     "httpx>=0.26",
 ]
 
+[project.optional-dependencies]
+desktop = [
+    "pystray>=0.19.5",
+    "pillow>=10.0.0",
+]
+build = [
+    "pyinstaller>=6.0.0",
+]
+
 [project.scripts]
 # `pipx install .` then `noscam` — no repository, no terminal gymnastics.
 noscam = "noscam:main"

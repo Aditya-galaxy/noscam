@@ -16,9 +16,83 @@
 const SERVICE = "http://127.0.0.1:8787";
 
 // tabId -> { origin, source_host, at }   how this tab reached its current page
-const provenance = new Map();
-// tabId -> last committed URL, so a same-tab link click knows where it came from
-const lastUrl = new Map();
+// In Manifest V3, background service workers terminate after ~30s of idle time.
+// We back state with chrome.storage.session so provenance survives worker shutdown.
+const provCache = new Map();
+const lastUrlCache = new Map();
+
+const hasSessionStorage = typeof chrome !== "undefined" && Boolean(chrome.storage && chrome.storage.session);
+
+async function getProvenance(tabId) {
+  if (provCache.has(tabId)) return provCache.get(tabId);
+  if (hasSessionStorage) {
+    try {
+      const res = await chrome.storage.session.get(`prov_${tabId}`);
+      if (res && res[`prov_${tabId}`]) {
+        provCache.set(tabId, res[`prov_${tabId}`]);
+        return res[`prov_${tabId}`];
+      }
+    } catch {
+      // fallback to default
+    }
+  }
+  return { origin: "unknown", source_host: null, at: null };
+}
+
+async function setProvenance(tabId, origin, sourceHost) {
+  const record = {
+    origin,
+    source_host: sourceHost || null,
+    at: new Date().toISOString(),
+  };
+  provCache.set(tabId, record);
+  if (hasSessionStorage) {
+    try {
+      await chrome.storage.session.set({ [`prov_${tabId}`]: record });
+    } catch {
+      // storage unavailable
+    }
+  }
+}
+
+async function getLastUrl(tabId) {
+  if (lastUrlCache.has(tabId)) return lastUrlCache.get(tabId);
+  if (hasSessionStorage) {
+    try {
+      const res = await chrome.storage.session.get(`url_${tabId}`);
+      if (res && res[`url_${tabId}`]) {
+        lastUrlCache.set(tabId, res[`url_${tabId}`]);
+        return res[`url_${tabId}`];
+      }
+    } catch {
+      // fallback
+    }
+  }
+  return "";
+}
+
+async function setLastUrl(tabId, url) {
+  lastUrlCache.set(tabId, url);
+  if (hasSessionStorage) {
+    try {
+      await chrome.storage.session.set({ [`url_${tabId}`]: url });
+    } catch {
+      // storage unavailable
+    }
+  }
+}
+
+async function removeTabState(tabId) {
+  provCache.delete(tabId);
+  lastUrlCache.delete(tabId);
+  if (hasSessionStorage) {
+    try {
+      await chrome.storage.session.remove([`prov_${tabId}`, `url_${tabId}`]);
+    } catch {
+      // storage unavailable
+    }
+  }
+}
 
 function hostOf(url) {
   try {
@@ -29,33 +103,25 @@ function hostOf(url) {
   }
 }
 
-function setProvenance(tabId, origin, sourceHost) {
-  provenance.set(tabId, {
-    origin,
-    source_host: sourceHost || null,
-    at: new Date().toISOString(),
-  });
-}
-
 // A link opened in a *new* tab: the source tab is handed to us directly.
 chrome.webNavigation.onCreatedNavigationTarget.addListener(async (details) => {
-  const sourceUrl = lastUrl.get(details.sourceTabId) || "";
-  setProvenance(details.tabId, "link", hostOf(sourceUrl));
+  const sourceUrl = await getLastUrl(details.sourceTabId);
+  await setProvenance(details.tabId, "link", hostOf(sourceUrl));
 });
 
-chrome.webNavigation.onCommitted.addListener((details) => {
+chrome.webNavigation.onCommitted.addListener(async (details) => {
   if (details.frameId !== 0) return;
 
-  const previous = lastUrl.get(details.tabId) || "";
+  const previous = await getLastUrl(details.tabId);
   const transition = details.transitionType;
 
   if (transition === "typed" || transition === "generated" || transition === "keyword") {
-    setProvenance(details.tabId, "typed", null);
+    await setProvenance(details.tabId, "typed", null);
   } else if (transition === "auto_bookmark") {
-    setProvenance(details.tabId, "bookmark", null);
+    await setProvenance(details.tabId, "bookmark", null);
   } else if (transition === "link" || transition === "form_submit") {
     const previousHost = hostOf(previous);
-    const existing = provenance.get(details.tabId);
+    const existing = await getProvenance(details.tabId);
     // Within one site, a click does not reset where the journey began: the scam
     // page redirects you onward, and the message is still what sent you.
     if (existing && previousHost && existing.source_host &&
@@ -64,20 +130,19 @@ chrome.webNavigation.onCommitted.addListener((details) => {
     } else if (existing && previousHost === existing.source_host) {
       // still one hop from the message
     } else if (previousHost) {
-      setProvenance(details.tabId, "link", previousHost);
+      await setProvenance(details.tabId, "link", previousHost);
     }
   } else if (transition === "reload") {
     // keep whatever we knew
-  } else if (!provenance.has(details.tabId)) {
-    setProvenance(details.tabId, "unknown", null);
+  } else if (provCache.has(details.tabId) || (await getProvenance(details.tabId)).origin === "unknown") {
+    await setProvenance(details.tabId, "unknown", null);
   }
 
-  lastUrl.set(details.tabId, details.url);
+  await setLastUrl(details.tabId, details.url);
 });
 
 chrome.tabs.onRemoved.addListener((tabId) => {
-  provenance.delete(tabId);
-  lastUrl.delete(tabId);
+  removeTabState(tabId);
 });
 
 async function ask(path, body) {
@@ -91,7 +156,7 @@ async function ask(path, body) {
 }
 
 async function checkAction(tabId, action) {
-  const where = provenance.get(tabId) || { origin: "unknown", source_host: null, at: null };
+  const where = await getProvenance(tabId);
   return ask("/gate/check", { action, provenance: where });
 }
 
@@ -144,14 +209,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     "noscam:check": () => checkAction(tabId, message.action),
     "noscam:hold": () => ask(`/holds/${message.holdId}`),
     "noscam:advice": () => ask(`/holds/${message.holdId}/advice`),
-    "noscam:arrival": () => {
-      const where = provenance.get(tabId) || { origin: "unknown", source_host: null, at: null };
+    "noscam:arrival": async () => {
+      const where = await getProvenance(tabId);
       return ask("/gate/arrival", { url: message.url, provenance: where });
     },
     "noscam:override": () =>
       ask(`/holds/${message.holdId}/override`, { reason: message.reason || "" }),
     "noscam:state": async () => ({
-      provenance: provenance.get(tabId) || null,
+      provenance: await getProvenance(tabId),
       household: await ask("/household"),
     }),
   };

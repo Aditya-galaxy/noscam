@@ -189,6 +189,19 @@
       <button class="action save" id="add-payee">Add</button>
     </div>
 
+    <div class="card" id="pairing-card">
+      <h2>Remote Device Pairing (E2EE)</h2>
+      <p class="meta">Approve payments from anywhere in the world across cellular networks without a cloud account. Everything is end-to-end encrypted with AES-256.</p>
+      <div id="pairing-status" class="meta" style="margin-bottom:10px;">Status: Local Mode</div>
+      <div class="row">
+        <button class="action deny" id="show-qr-btn">Show Pairing Link</button>
+      </div>
+      <div id="qr-container" style="display:none; margin-top:14px;">
+        <input id="pairing-link" type="text" readonly style="font-size:12px; margin-bottom:8px;">
+        <p class="meta">Open this URL on the guardian's phone to pair.</p>
+      </div>
+    </div>
+
     <div class="card">
       <h2>Reported sites</h2>
       <p class="meta" id="reported">None yet.</p>

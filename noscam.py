@@ -103,6 +103,10 @@ def main() -> int:
     parser.add_argument("--lan", action="store_true",
                         help="let a phone on the same Wi-Fi reach this. Off by default: "
                              "loopback-only is the safer thing to be when nobody asked.")
+    parser.add_argument("--tray", action="store_true",
+                        help="run with a system tray/menu bar icon (requires pystray and pillow)")
+    parser.add_argument("--headless", action="store_true",
+                        help="force headless console mode without tray icon")
     args = parser.parse_args()
 
     print(BANNER)
@@ -145,13 +149,31 @@ def main() -> int:
         print("\n  No GEMINI_API_KEY: the advice line is off and the deterministic\n"
               "  explanation is shown instead. Everything else works.")
 
-    print("\n  Ctrl-C to stop.\n")
     if not args.no_open:
         webbrowser.open("http://localhost:8790" if not args.no_demo
                         else f"http://127.0.0.1:{args.port}/app/")
 
+    stop_event = threading.Event()
+    is_frozen = getattr(sys, "frozen", False)
+    use_tray = (args.tray or is_frozen) and not args.headless
+
+    if use_tray:
+        from service.tray import is_available, run_tray
+
+        if is_available():
+            print("  Running in system tray. Use tray menu to open dashboard or exit.\n")
+            try:
+                run_tray(args.port, on_quit=stop_event.set, lan=args.lan)
+            except KeyboardInterrupt:
+                pass
+            print("\n  Stopped.")
+            return 0
+        elif args.tray:
+            print("  Note: pystray or Pillow not installed. Running in console mode.")
+
+    print("\n  Ctrl-C to stop.\n")
     try:
-        threading.Event().wait()
+        stop_event.wait()
     except KeyboardInterrupt:
         print("\n  Stopped.")
     return 0

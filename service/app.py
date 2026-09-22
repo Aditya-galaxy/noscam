@@ -28,11 +28,44 @@ from .policy import (
     decide_arrival, guardian_line,
 )
 from .provenance import Origin, Provenance, normalize_host, utcnow
+from .relay import PairingManager, RelayClient
 from .store import APPROVAL_TTL, Hold, State, Store, new_id, pairing_code
 
 DATA_DIR = os.environ.get("NOSCAM_DATA", os.path.join(os.getcwd(), "data"))
 store = Store(os.path.join(DATA_DIR, "household.json"))
 audit = AuditLog(os.path.join(DATA_DIR, "audit.jsonl"))
+
+pairing_mgr = PairingManager(DATA_DIR)
+
+
+def apply_remote_verdict(hold_id: str, verdict: str) -> None:
+    now = utcnow()
+    holds = store.read().holds
+    if hold_id not in holds:
+        return
+    hold = holds[hold_id]
+    if hold.is_expired(now) or hold.status != "pending" or not hold.approvable:
+        return
+    if verdict not in ("approve", "deny"):
+        return
+
+    def mutate(s: State) -> None:
+        target = s.holds[hold_id]
+        target.status = "approved" if verdict == "approve" else "denied"
+        target.decided_by = "remote_guardian (E2EE)"
+        target.decided_at = now
+
+    store.update(mutate)
+    audit.record("hold_decision", {
+        "hold_id": hold_id,
+        "verdict": verdict,
+        "by": "remote_guardian (E2EE)",
+        "fingerprint": hold.fingerprint,
+    }, at=now)
+
+
+relay_client = RelayClient(pairing_mgr, on_verdict=apply_remote_verdict)
+relay_client.start()
 
 app = FastAPI(title="NoScam", version="1.0")
 # The extension (chrome-extension://…), the phone app and the demo pages are all
@@ -299,6 +332,8 @@ def gate_check(payload: CheckIn) -> DecisionOut:
             )
             hold_id = hold.id
             store.update(lambda s: s.holds.__setitem__(hold.id, hold))
+            if hold.approvable:
+                relay_client.publish_hold(hold.summary(now))
     elif action.type.is_payment and action.amount:
         # It went through, so it counts against today, and this payee is now one
         # the household has paid before.
@@ -528,6 +563,17 @@ def get_household(_: None = Depends(require_trusted_origin)) -> dict[str, Any]:
         "reported_hosts": household.reported_hosts,
         "paired_devices": household.paired_devices,
         "spent_today": store.spent_today(),
+    }
+
+
+@app.get("/household/pairing")
+def get_pairing(_: None = Depends(require_trusted_origin)) -> dict[str, Any]:
+    creds = pairing_mgr.get_credentials()
+    return {
+        "channel_id": creds["channel_id"],
+        "shared_key": creds["shared_key"],
+        "pairing_url": f"/app/?r={creds['channel_id']}&k={creds['shared_key']}",
+        "created_at": creds.get("created_at"),
     }
 
 
