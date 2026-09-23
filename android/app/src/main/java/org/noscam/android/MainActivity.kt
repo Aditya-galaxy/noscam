@@ -80,18 +80,36 @@ class MainActivity : Activity() {
 
             // 4. Suspicious TLD / Brand impersonation in subdomains
             val suspiciousTlds = listOf(".xyz", ".top", ".tk", ".cf", ".click", ".vip", ".loan")
-            val brands = listOf("paypal", "chase", "wells", "sbi", "hdfc", "paytm", "amazon", "netflix")
             if (suspiciousTlds.any { host.endsWith(it) }) {
                 warnings.add("Uses an uncommon domain extension frequently associated with temporary scam portals.")
             }
-            if (brands.any { host.contains(it) } && !host.endsWith("paypal.com") && !host.endsWith("amazon.com")) {
-                warnings.add("Includes a well-known brand name inside an unfamiliar website address.")
+            val legitimateBrandDomains = mapOf(
+                "paypal" to listOf("paypal.com"),
+                "chase" to listOf("chase.com"),
+                "wells" to listOf("wellsfargo.com"),
+                "sbi" to listOf("sbi.co.in", "onlinesbi.sbi", "onlinesbi.com"),
+                "hdfc" to listOf("hdfcbank.com"),
+                "paytm" to listOf("paytm.com"),
+                "amazon" to listOf("amazon.com", "amazon.in", "amazon.co.uk"),
+                "netflix" to listOf("netflix.com")
+            )
+            for ((brand, validDomains) in legitimateBrandDomains) {
+                if (host.contains(brand)) {
+                    val isLegitimate = validDomains.any { host == it || host.endsWith(".$it") }
+                    if (!isLegitimate) {
+                        warnings.add("The name '$brand' appears in this address, but it is not an official $brand website.")
+                        break
+                    }
+                }
             }
 
             // 5. UPI collect request link
-            if (urlString.startsWith("upi://") || urlString.contains("upi://")) {
-                if (urlString.contains("tr=") && !urlString.contains("am=")) {
-                    warnings.add("UPI request asks you to approve receiving money — UPI approvals only send money out.")
+            if (urlString.startsWith("upi:") || urlString.contains("upi://")) {
+                val hasBlankAmount = !urlString.contains("am=") || urlString.contains("am=&") || urlString.endsWith("am=") || urlString.contains("am=0")
+                if (hasBlankAmount) {
+                    warnings.add("UPI request leaves the amount blank or asks for approval — approving UPI requests only sends money out, never receives it.")
+                } else if (urlString.contains("tr=") || urlString.contains("mode=02") || urlString.contains("recur=")) {
+                    warnings.add("UPI request asks for your approval or recurring mandate — receiving money never requires your PIN.")
                 }
             }
         } catch (e: Exception) {

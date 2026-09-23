@@ -27,7 +27,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 DIST = HERE / "dist"
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 
 # What it takes to run: the gate, the phone app, the extension, the stand-in
 # sites that let you watch it work, and the launcher that starts all of them.

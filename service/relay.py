@@ -165,6 +165,8 @@ class RelayClient:
         topic = f"noscam_reply_{channel_id}"
         poll_url = f"{self.relay_url}/{topic}/json?poll=1"
 
+        seen_ids: set[str] = set()
+
         while self._running:
             try:
                 with httpx.Client(timeout=8.0) as client:
@@ -176,6 +178,9 @@ class RelayClient:
                                 continue
                             try:
                                 msg = json.loads(line)
+                                msg_id = msg.get("id")
+                                if msg_id and msg_id in seen_ids:
+                                    continue
                                 raw_message = msg.get("message", "")
                                 if raw_message:
                                     reply_data = decrypt_payload(shared_key, raw_message)
@@ -183,6 +188,10 @@ class RelayClient:
                                     verdict = reply_data.get("verdict")
                                     if hold_id and verdict and self.on_verdict:
                                         self.on_verdict(hold_id, verdict)
+                                if msg_id:
+                                    seen_ids.add(msg_id)
+                                    if len(seen_ids) > 1000:
+                                        seen_ids.clear()
                             except Exception:
                                 pass
             except Exception:

@@ -1,6 +1,6 @@
 [project]
 name = "noscam"
-version = "1.0.0"
+version = "1.1.0"
 description = "Refuses to let an instruction that arrived through a message authorise something irreversible."
 readme = "README.md"
 requires-python = ">=3.11"

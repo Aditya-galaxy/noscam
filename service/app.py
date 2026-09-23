@@ -67,7 +67,7 @@ def apply_remote_verdict(hold_id: str, verdict: str) -> None:
 relay_client = RelayClient(pairing_mgr, on_verdict=apply_remote_verdict)
 relay_client.start()
 
-app = FastAPI(title="NoScam", version="1.0")
+app = FastAPI(title="NoScam", version="1.1.0")
 # The extension (chrome-extension://…), the phone app and the demo pages are all
 # different origins talking to a service on this machine.
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"],
