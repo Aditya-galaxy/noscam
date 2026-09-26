@@ -1,11 +1,17 @@
 package org.noscam.android
 
 import android.app.Activity
+import android.app.role.RoleManager
+import android.content.ActivityNotFoundException
+import android.content.ComponentName
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.Typeface
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.view.Gravity
 import android.widget.Button
 import android.widget.LinearLayout
@@ -21,9 +27,10 @@ class MainActivity : Activity() {
         handleIntent(intent)
     }
 
-    override fun onNewIntent(intent: Intent?) {
+    override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        intent?.let { handleIntent(it) }
+        setIntent(intent)          // so onResume sees the link, not the launch
+        handleIntent(intent)
     }
 
     private fun handleIntent(intent: Intent) {
@@ -122,6 +129,8 @@ class MainActivity : Activity() {
         val root = ScrollView(this).apply {
             setBackgroundColor(Color.WHITE)
             isFillViewport = true
+            // Targeting API 35+ draws edge to edge; keep text clear of the bars.
+            fitsSystemWindows = true
         }
 
         val layout = LinearLayout(this).apply {
@@ -195,16 +204,59 @@ class MainActivity : Activity() {
         setContentView(root)
     }
 
+    private fun isDefaultLinkHandler(): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val roles = getSystemService(RoleManager::class.java)
+            return roles != null && roles.isRoleHeld(RoleManager.ROLE_BROWSER)
+        }
+        val probe = Intent(Intent.ACTION_VIEW, Uri.parse("https://example.com"))
+        val resolved = packageManager.resolveActivity(probe, PackageManager.MATCH_DEFAULT_ONLY)
+        return resolved?.activityInfo?.packageName == packageName
+    }
+
+    /** Since Android 12, a tapped link goes to the default browser and nowhere
+     *  else, so checking every link means being chosen as the default. The
+     *  system shows its own dialog; the person can undo it in Settings. */
+    private fun requestDefaultLinkHandler() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val roles = getSystemService(RoleManager::class.java)
+            if (roles != null && roles.isRoleAvailable(RoleManager.ROLE_BROWSER)) {
+                @Suppress("DEPRECATION")
+                startActivityForResult(roles.createRequestRoleIntent(RoleManager.ROLE_BROWSER), REQUEST_ROLE)
+                return
+            }
+        }
+        try {
+            startActivity(Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS))
+        } catch (e: ActivityNotFoundException) {
+            startActivity(Intent(Settings.ACTION_SETTINGS))
+        }
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == REQUEST_ROLE) showLauncherDashboard()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (extractUrl(intent).isNullOrBlank()) showLauncherDashboard()
+    }
+
     private fun showLauncherDashboard() {
+        val active = isDefaultLinkHandler()
+
         val layout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
             setPadding(48, 64, 48, 64)
             setBackgroundColor(Color.WHITE)
+            fitsSystemWindows = true
         }
 
         val title = TextView(this).apply {
-            text = "NoScam Mobile"
+            text = "NoScam"
             textSize = 24f
             setTypeface(null, Typeface.BOLD)
             setTextColor(Color.BLACK)
@@ -212,32 +264,81 @@ class MainActivity : Activity() {
         layout.addView(title)
 
         val subtitle = TextView(this).apply {
-            text = "Link interception is active.\nWhen a link is tapped in WhatsApp or SMS, NoScam checks it before opening."
-            textSize = 15f
+            text = if (active) {
+                "Checking every link you tap.\n\nWhen you tap a link in WhatsApp, SMS or email, " +
+                    "NoScam looks at it first, then opens it in your usual browser."
+            } else {
+                "Not checking tapped links yet.\n\nAndroid sends every tapped link to one app, " +
+                    "the default browser. To check links before they open, choose NoScam there. " +
+                    "It hands every link on to your usual browser straight after.\n\n" +
+                    "Until then, you can still check a link with Share → NoScam."
+            }
+            textSize = 16f
             setTextColor(Color.DKGRAY)
             gravity = Gravity.CENTER
             setPadding(0, 16, 0, 32)
         }
         layout.addView(subtitle)
 
-        val btnDashboard = Button(this).apply {
-            text = "Open Guardian Dashboard"
-            setBackgroundColor(Color.BLACK)
-            setTextColor(Color.WHITE)
-            setOnClickListener {
-                openInBrowser("https://aditya-galaxy.github.io/noscam/app/")
+        if (!active) {
+            val btnEnable = Button(this).apply {
+                text = "Check every link I tap"
+                setBackgroundColor(Color.BLACK)
+                setTextColor(Color.WHITE)
+                setOnClickListener { requestDefaultLinkHandler() }
             }
+            layout.addView(btnEnable)
         }
-        layout.addView(btnDashboard)
+
+        val btnAbout = Button(this).apply {
+            text = "How NoScam works"
+            setBackgroundColor(Color.TRANSPARENT)
+            setTextColor(Color.DKGRAY)
+            setOnClickListener { openInBrowser("https://aditya-galaxy.github.io/noscam/") }
+        }
+        layout.addView(btnAbout)
 
         setContentView(layout)
     }
 
+    /** Hand a link to a real browser — never back to ourselves. Once NoScam is
+     *  the default browser, a plain ACTION_VIEW would come straight back here. */
     private fun openInBrowser(url: String) {
-        val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+        val view = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
             addCategory(Intent.CATEGORY_BROWSABLE)
             flags = Intent.FLAG_ACTIVITY_NEW_TASK
         }
-        startActivity(browserIntent)
+        val target = chooseBrowser()
+        if (target != null) {
+            view.component = target
+        } else if (isDefaultLinkHandler()) {
+            // No other browser installed: there is nowhere safe to send it.
+            return
+        }
+        try {
+            startActivity(view)
+        } catch (e: ActivityNotFoundException) {
+            // nothing can open it
+        }
+    }
+
+    private fun chooseBrowser(): ComponentName? {
+        val probe = Intent(Intent.ACTION_VIEW, Uri.parse("https://example.com"))
+            .addCategory(Intent.CATEGORY_BROWSABLE)
+        val candidates = packageManager.queryIntentActivities(probe, PackageManager.MATCH_ALL)
+            .map { it.activityInfo }
+            .filter { it.packageName != packageName && it.exported }
+        val preferred = PREFERRED_BROWSERS.firstNotNullOfOrNull { pkg ->
+            candidates.firstOrNull { it.packageName == pkg }
+        } ?: candidates.firstOrNull()
+        return preferred?.let { ComponentName(it.packageName, it.name) }
+    }
+
+    companion object {
+        private const val REQUEST_ROLE = 1
+        private val PREFERRED_BROWSERS = listOf(
+            "com.android.chrome", "com.sec.android.app.sbrowser", "org.mozilla.firefox",
+            "com.microsoft.emmx", "com.brave.browser", "com.opera.browser",
+        )
     }
 }

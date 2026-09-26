@@ -14,9 +14,12 @@
 // same Wi-Fi, which the browser cannot tell apart on its own.
 const { token, relayChannel, relayKey } = (() => {
   const params = new URLSearchParams(location.search);
+  // The relay key arrives in the fragment, which is never sent to any server.
+  // Older pairing links put it in the query; both still work.
+  const fragment = new URLSearchParams(location.hash.replace(/^#/, ""));
   const fromLink = params.get("t");
-  const r = params.get("r");
-  const k = params.get("k");
+  const r = fragment.get("r") || params.get("r");
+  const k = fragment.get("k") || params.get("k");
 
   if (r && k) {
     try {
@@ -478,7 +481,9 @@ async function loadHousehold() {
   if (showQrBtn) {
     showQrBtn.onclick = async () => {
       try {
-        const pairData = await api("/household/pairing");
+        // Asking for the link is what switches remote approval on; until now
+        // the service has made no outbound connection.
+        const pairData = await api("/household/pairing", {});
         const fullUrl = `${location.origin}${pairData.pairing_url}`;
         $("pairing-link").value = fullUrl;
         $("qr-container").style.display = "block";
@@ -487,12 +492,42 @@ async function loadHousehold() {
           navigator.clipboard.writeText(fullUrl).catch(() => {});
           toast("Pairing link copied!");
         };
+        const off = $("unpair-btn");
+        if (off) off.style.display = "";
       } catch {
         toast("Could not retrieve pairing data.");
       }
     };
   }
+
+  const unpairBtn = $("unpair-btn");
+  if (unpairBtn) {
+    api("/household/pairing/status").then((st) => {
+      unpairBtn.style.display = st && st.enabled ? "" : "none";
+    }).catch(() => {});
+    unpairBtn.onclick = async () => {
+      await api("/household/pairing", null, "DELETE").catch(() => {});
+      try {
+        localStorage.removeItem("noscam:relay_channel");
+        localStorage.removeItem("noscam:relay_key");
+      } catch {}
+      toast("Remote approval turned off. The old link no longer works.");
+      setTimeout(() => location.reload(), 800);
+    };
+  }
 }
+
+// A newer release is announced, never installed behind the household's back.
+api("/version").then((v) => {
+  if (!v || !v.update_available) return;
+  const bar = document.createElement("a");
+  bar.href = v.url;
+  bar.target = "_blank";
+  bar.rel = "noopener";
+  bar.className = "update-bar";
+  bar.textContent = `A newer NoScam (${v.latest}) is available. You are on ${v.current}.`;
+  document.body.prepend(bar);
+}).catch(() => {});
 
 $("add-payee").addEventListener("click", async () => {
   const name = $("new-payee").value.trim();

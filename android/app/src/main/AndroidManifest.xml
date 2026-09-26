@@ -1,8 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="org.noscam.android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Android 11+ hides other apps unless we say what we need to see: here,
+         the browsers a checked link can be handed on to. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="https" />
+        </intent>
+    </queries>
 
     <application
         android:allowBackup="false"
@@ -16,14 +25,19 @@
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTask">
-            
-            <!-- Standard Launcher Entry -->
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- Intercept tapped HTTP/HTTPS links from WhatsApp, SMS, etc. -->
+            <!-- Every http/https link, with no host. Since Android 12 a tapped
+                 link goes straight to the *default browser* unless an app has
+                 verified that domain, so this filter alone is not enough: it is
+                 what makes NoScam eligible to be chosen as the default browser
+                 (RoleManager.ROLE_BROWSER). The app asks for that role on first
+                 launch; once held, every tapped link comes here first and is
+                 handed on to a real browser. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -32,7 +46,7 @@
                 <data android:scheme="https" />
             </intent-filter>
 
-            <!-- Receive shared links from WhatsApp / Share sheet -->
+            <!-- Share → NoScam, which works without being the default. -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />

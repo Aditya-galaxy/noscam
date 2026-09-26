@@ -83,8 +83,10 @@ python3 noscam.py
 ```
 
 On macOS you can double-click **`Start NoScam.command`** instead; it installs
-what is missing the first time. `pipx install .` also works — `noscam` then
-starts it from anywhere. What it would take to ship this past people who own a
+what is missing the first time. Installed copies — the desktop apps on the
+[releases page](https://github.com/Aditya-galaxy/noscam/releases/latest), or
+`pipx install noscam` — start without the demo and keep the household in your
+user app-data folder; add `--demo` to see the demo there. What it would take to ship this past people who own a
 terminal is written down in [SHIPPING.md](SHIPPING.md).
 
 That starts the gate, the stand-in messenger and bank, seeds a household and
@@ -208,8 +210,13 @@ already imitates.
 - **An approval is bound to one action.** It carries a fingerprint of host,
   action, amount and payee, expires in five minutes and cannot be given twice —
   so a nod for a small payment cannot be stretched to cover a large one.
-- **Nothing leaves the machine.** The service runs locally; payments, payees and
-  limits stay on it. The only outbound call is the optional advice line.
+- **Nothing about your money leaves the machine unencrypted.** The service runs
+  locally; payments, payees and limits stay on it. Three things can reach the
+  network, all disclosed in the [privacy policy](docs/privacy.html): the
+  optional advice line (only with your own Gemini key); *approve from anywhere*,
+  which is **off until you turn it on** and then sends holds AES-256-GCM
+  encrypted through ntfy.sh (or your own relay, `NOSCAM_RELAY_URL`); and a
+  once-a-day check for a newer release (`NOSCAM_NO_UPDATE_CHECK=1` turns it off).
 
 ### The model's leash
 
@@ -241,7 +248,7 @@ it at the person rather than the agent, and measuring the friction it costs.
 ## Tests
 
 ```bash
-python3 -m pytest -q      # 110: the gate's truth table, approval replay,
+python3 -m pytest -q      # 133: the gate's truth table, approval replay,
                           # link signals, SSRF refusals, audit tampering,
                           # and the model's leash
 python3 eval/score.py     # the two-axis scorecard

@@ -20,6 +20,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+from . import __version__, updates
 from .audit import AuditLog
 from .explain import coach
 from .links import check_url
@@ -28,10 +29,11 @@ from .policy import (
     decide_arrival, guardian_line,
 )
 from .provenance import Origin, Provenance, normalize_host, utcnow
+from .paths import data_dir, resource
 from .relay import PairingManager, RelayClient
 from .store import APPROVAL_TTL, Hold, State, Store, new_id, pairing_code
 
-DATA_DIR = os.environ.get("NOSCAM_DATA", os.path.join(os.getcwd(), "data"))
+DATA_DIR = data_dir()
 store = Store(os.path.join(DATA_DIR, "household.json"))
 audit = AuditLog(os.path.join(DATA_DIR, "audit.jsonl"))
 
@@ -65,9 +67,9 @@ def apply_remote_verdict(hold_id: str, verdict: str) -> None:
 
 
 relay_client = RelayClient(pairing_mgr, on_verdict=apply_remote_verdict)
-relay_client.start()
+relay_client.start()        # a no-op until a phone has been paired for remote use
 
-app = FastAPI(title="NoScam", version="1.1.0")
+app = FastAPI(title="NoScam", version=__version__)
 # The extension (chrome-extension://…), the phone app and the demo pages are all
 # different origins talking to a service on this machine.
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"],
@@ -566,15 +568,34 @@ def get_household(_: None = Depends(require_trusted_origin)) -> dict[str, Any]:
     }
 
 
-@app.get("/household/pairing")
-def get_pairing(_: None = Depends(require_trusted_origin)) -> dict[str, Any]:
+@app.get("/household/pairing/status")
+def pairing_status(_: None = Depends(require_trusted_origin)) -> dict[str, Any]:
+    return {"enabled": pairing_mgr.is_enabled(), "relay": relay_client.relay_url}
+
+
+@app.post("/household/pairing")
+def enable_pairing(_: None = Depends(require_trusted_origin)) -> dict[str, Any]:
+    """Turn on approval from anywhere. This is the moment the service starts
+    talking to the relay, and it only happens because someone asked for it."""
     creds = pairing_mgr.get_credentials()
+    relay_client.start()
+    audit.record("remote_pairing", {"enabled": True, "relay": relay_client.relay_url},
+                 at=utcnow())
     return {
         "channel_id": creds["channel_id"],
         "shared_key": creds["shared_key"],
-        "pairing_url": f"/app/?r={creds['channel_id']}&k={creds['shared_key']}",
+        "pairing_url": pairing_mgr.pairing_url(),
         "created_at": creds.get("created_at"),
     }
+
+
+@app.delete("/household/pairing")
+def disable_pairing(_: None = Depends(require_trusted_origin)) -> dict[str, Any]:
+    """Forget the pairing. Any phone holding the old key can no longer answer."""
+    relay_client.stop()
+    pairing_mgr.disable()
+    audit.record("remote_pairing", {"enabled": False}, at=utcnow())
+    return {"enabled": False}
 
 
 @app.put("/limits")
@@ -774,15 +795,19 @@ def audit_recent(limit: int = 25) -> list[dict[str, Any]]:
 
 @app.get("/health")
 def health() -> dict[str, Any]:
-    return {"ok": True, "service": "noscam"}
+    return {"ok": True, "service": "noscam", "version": __version__}
+
+
+@app.get("/version")
+def version() -> dict[str, Any]:
+    return updates.status()
 
 
 # The phone app and the demo pages are plain static files served from here, so
 # there is one thing to run. Paths are resolved from the repository rather than
 # the working directory: the service is started from editors, shells and the
 # demo script, and "wherever you happened to be" is not a location.
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 for route, folder in (("/app", "web"), ("/demo", "demo")):
-    directory = os.path.join(ROOT, folder)
+    directory = resource(folder)
     if os.path.isdir(directory):
         app.mount(route, StaticFiles(directory=directory, html=True), name=folder)

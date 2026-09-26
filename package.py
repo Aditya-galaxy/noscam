@@ -20,6 +20,7 @@ impossible to put someone's own household into a file that strangers download.
 
 from __future__ import annotations
 
+import json
 import subprocess
 import sys
 import zipfile
@@ -27,7 +28,8 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 DIST = HERE / "dist"
-VERSION = "1.1.0"
+sys.path.insert(0, str(HERE))
+from service import __version__ as VERSION  # noqa: E402
 
 # What it takes to run: the gate, the phone app, the extension, the stand-in
 # sites that let you watch it work, and the launcher that starts all of them.
@@ -49,7 +51,11 @@ TO RUN IT
   2. python3 -m pip install -r requirements.txt
   3. python3 noscam.py
 
-  A browser opens. Follow the message, press Transfer, and watch it stop.
+  A browser opens on first-run setup. To watch it stop a scam first, start it
+  with  python3 noscam.py --demo  instead, follow the message, press Transfer.
+
+  Your household is kept in your user app-data folder (it prints where), not
+  in this folder, so deleting or replacing this folder keeps your settings.
 
   On a Mac you can double-click "Start NoScam.command" instead of step 3.
 
@@ -76,6 +82,15 @@ def tracked(paths: list[str]) -> list[Path]:
     return [Path(name) for name in listing.stdout.split("\0") if name]
 
 
+def firefox_manifest(chrome: dict) -> dict:
+    variant = json.loads(json.dumps(chrome))
+    variant["background"] = {"scripts": ["background.js"]}
+    variant["browser_specific_settings"] = {
+        "gecko": {"id": "guardian@noscam.org", "strict_min_version": "121.0"},
+    }
+    return variant
+
+
 def main() -> int:
     files = tracked(SHIP)
     if not files:
@@ -95,15 +110,23 @@ def main() -> int:
     size = archive.stat().st_size
     print(f"  {archive}  ({size / 1_000_000:.1f} MB, {len(files) + 1} files)\n")
 
-    # Extension zip ready for Chrome Web Store / Firefox AMO submission
-    ext_archive = DIST / "noscam-extension.zip"
+    # One source, two store packages. Chrome runs the background as a service
+    # worker; Firefox's MV3 runs it as an event page from `background.scripts`
+    # and needs an add-on id. Writing both into one manifest makes each browser
+    # warn about the other's key, so each store gets the manifest it expects.
     ext_files = [f for f in files if str(f).startswith("extension/")]
-    if ext_files:
+    manifest = json.loads((HERE / "extension" / "manifest.json").read_text(encoding="utf-8"))
+    for browser, variant in (("chrome", manifest), ("firefox", firefox_manifest(manifest))):
+        ext_archive = DIST / f"noscam-extension-{browser}.zip"
         with zipfile.ZipFile(ext_archive, "w", zipfile.ZIP_DEFLATED) as ext_bundle:
             for name in ext_files:
-                rel = name.relative_to("extension")
-                ext_bundle.write(HERE / name, str(rel))
-        print(f"  {ext_archive}  ({ext_archive.stat().st_size / 1_000:.1f} KB, ready for Web Store upload)\n")
+                rel = str(name.relative_to("extension"))
+                if rel == "manifest.json":
+                    ext_bundle.writestr(rel, json.dumps(variant, indent=2, ensure_ascii=False))
+                else:
+                    ext_bundle.write(HERE / name, rel)
+        print(f"  {ext_archive}  ({ext_archive.stat().st_size / 1_000:.1f} KB)")
+    print()
 
     for name in sorted({str(f).split("/")[0] for f in files}):
         print(f"    {name}")

@@ -5,20 +5,39 @@ plugins {
 
 android {
     namespace 'org.noscam.android'
-    compileSdk 34
+    // Google Play requires new apps and updates to target API 36 from Aug 31, 2026.
+    compileSdk 36
 
     defaultConfig {
         applicationId "org.noscam.android"
         minSdk 24
-        targetSdk 34
-        versionCode 1
-        versionName "1.0.0"
+        targetSdk 36
+        versionCode 2
+        versionName "1.1.0"
+    }
+
+    // Release signing comes from the environment (CI secrets or a local shell),
+    // never from a file in the repository. Without it, release builds are
+    // unsigned and only the debug APK is installable.
+    signingConfigs {
+        release {
+            def store = System.getenv("NOSCAM_KEYSTORE")
+            if (store) {
+                storeFile file(store)
+                storePassword System.getenv("NOSCAM_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("NOSCAM_KEY_ALIAS")
+                keyPassword System.getenv("NOSCAM_KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
         release {
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (System.getenv("NOSCAM_KEYSTORE")) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 
@@ -32,8 +51,7 @@ android {
     }
 }
 
+// The app is plain framework Activity and View code: no AndroidX, no Material,
+// nothing to keep up to date or to widen the attack surface.
 dependencies {
-    implementation 'androidx.core:core-ktx:1.12.0'
-    implementation 'androidx.appcompat:appcompat:1.6.1'
-    implementation 'com.google.android.material:material:1.11.0'
 }

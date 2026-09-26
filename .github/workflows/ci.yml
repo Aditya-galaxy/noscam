@@ -23,3 +23,45 @@ jobs:
         run: python -m pytest -q
       - name: Scams stopped, and what it costs an ordinary household
         run: python eval/score.py
+
+  # `pipx install noscam` must give a working install, not just the Python
+  # code: the phone app and the extension are data files, and forgetting them
+  # is silent until a user opens a blank page.
+  wheel:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install build
+      - run: python -m build
+      - name: Install the wheel into a clean venv and check it finds its files
+        run: |
+          python -m venv /tmp/v
+          /tmp/v/bin/pip install dist/*.whl
+          cd /tmp
+          /tmp/v/bin/noscam --help
+          /tmp/v/bin/python - <<'PY'
+          import os
+          from service import paths
+          root = paths.resource_root()
+          for f in ("web/index.html", "web/app.js", "extension/manifest.json", "demo/serve.py"):
+              assert os.path.exists(os.path.join(root, f)), f"missing {f} under {root}"
+          assert not paths.is_checkout()
+          print("resources at", root, "| data at", paths.data_dir())
+          PY
+
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Android SDK platform 36 (the runner image already has the SDK)
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0" > /dev/null
+      - name: Build the debug APK
+        working-directory: android
+        run: ./gradlew --no-daemon assembleDebug

@@ -27,7 +27,8 @@ This native companion registers as a handler for `http` and `https` `VIEW` inten
 ## 2. Building the App
 
 ### Prerequisites
-* Android Studio (Hedgehog or newer) OR Android SDK with JDK 17+.
+* Android Studio (Meerkat or newer) OR the Android SDK with platform 36, and JDK 17+.
+* The Gradle wrapper is committed; `./gradlew` downloads the right Gradle itself.
 
 ### Build Debug APK
 ```bash
@@ -46,7 +47,37 @@ The output APK will be located at:
 ```bash
 adb install android/app/build/outputs/apk/debug/app-debug.apk
 ```
-3. On your phone, tap any link in WhatsApp or SMS.
-4. When prompted by Android to "Open with", choose **NoScam** → **Always**.
+3. Open NoScam and press **Check every link I tap**. Android asks whether to
+   make NoScam the default browser app — say yes.
 
-From then on, links are checked by NoScam before they open in your browser.
+Why the default browser: since Android 12, a tapped web link goes straight to
+the default browser unless an app has *verified* ownership of that domain, which
+NoScam cannot do for every domain. There is no "Open with" prompt any more.
+NoScam is not really a browser — it checks the link and hands it on to the
+browser you actually use (Chrome, Samsung Internet, Firefox…), never back to
+itself.
+
+Without that step, **Share → NoScam** still checks any link from inside
+WhatsApp.
+
+### Release builds
+
+```bash
+export NOSCAM_KEYSTORE=/path/to/upload.jks NOSCAM_KEYSTORE_PASSWORD=… \
+       NOSCAM_KEY_ALIAS=upload NOSCAM_KEY_PASSWORD=…
+./gradlew bundleRelease     # app/build/outputs/bundle/release/app-release.aab for Play
+```
+
+The keystore never goes in the repository. CI builds the debug APK on every
+release and signs the bundle only when these are set as secrets.
+
+### Distribution notes
+
+* Google Play: new personal developer accounts must run a closed test with
+  12 testers opted in for 14 consecutive days before production access.
+* Google Play requires `targetSdk 36` for new apps and updates from
+  Aug 31, 2026 — already set.
+* Sideloaded APKs: from Sept 30, 2026, certified Android devices in Brazil,
+  Indonesia, Singapore and Thailand only install apps from verified developers,
+  and this expands worldwide in 2027. Verify the developer account before
+  handing out APKs.

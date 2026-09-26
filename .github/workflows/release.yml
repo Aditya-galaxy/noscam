@@ -1,5 +1,18 @@
 name: release
 
+# Push a tag like v1.2.0 to publish. Every artifact is built from that tag, and
+# the tag must match service/__init__.py so the update check tells the truth.
+#
+# Signing turns on as soon as the secrets exist; until then the builds are
+# unsigned and say so in their logs.
+#   macOS:   MACOS_CERT_P12 (base64), MACOS_CERT_PASSWORD, MACOS_SIGN_IDENTITY,
+#            APPLE_ID, APPLE_TEAM_ID, APPLE_APP_PASSWORD
+#   Windows: AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET,
+#            AZURE_SIGNING_ENDPOINT, AZURE_SIGNING_ACCOUNT, AZURE_CERT_PROFILE
+#   Android: ANDROID_KEYSTORE_B64, NOSCAM_KEYSTORE_PASSWORD, NOSCAM_KEY_ALIAS,
+#            NOSCAM_KEY_PASSWORD
+#   PyPI:    none — uses trusted publishing (configure the project on pypi.org)
+
 on:
   push:
     tags:
@@ -20,6 +33,13 @@ jobs:
       - run: pip install -r requirements.txt pytest
       - run: python -m pytest -q
       - run: python eval/score.py
+      - name: Tag matches the version the app reports
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          v=$(python -c "import service; print(service.__version__)")
+          m=$(python -c "import json; print(json.load(open('extension/manifest.json'))['version'])")
+          test "v$v" = "${GITHUB_REF_NAME}" || { echo "tag ${GITHUB_REF_NAME} != service $v"; exit 1; }
+          test "$v" = "$m" || { echo "extension manifest $m != service $v"; exit 1; }
 
   package-extension-and-source:
     needs: test
@@ -29,71 +49,179 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install -r requirements.txt
-      - name: Build source bundle and extension zip
+      - run: pip install build
+      - name: Source bundle and the two store zips
         run: python package.py
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+      - name: Wheel and sdist
+        run: python -m build --outdir dist/python
+      - uses: actions/upload-artifact@v4
         with:
           name: package-bundles
-          path: dist/*
+          path: dist/*.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: python-dist
+          path: dist/python/*
 
   build-macos:
     needs: test
-    runs-on: macos-latest
+    strategy:
+      matrix:
+        # One build per architecture: PyInstaller cannot make a universal2 app
+        # from arch-specific wheels such as pydantic-core.
+        runner: [macos-15, macos-15-intel]
+    runs-on: ${{ matrix.runner }}
+    env:
+      MACOS_SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - run: pip install -r requirements.txt pyinstaller pillow pystray
-      - name: Build macOS App
-        run: python scripts/build_desktop.py
-      - name: Archive macOS App
+      - name: Import the Developer ID certificate
+        if: env.MACOS_SIGN_IDENTITY != ''
+        env:
+          MACOS_CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
+          MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
         run: |
-          cd dist
-          zip -r NoScam-macOS.zip NoScam.app
-      - name: Upload macOS Artifact
-        uses: actions/upload-artifact@v4
+          KC=$RUNNER_TEMP/build.keychain
+          security create-keychain -p ci "$KC"
+          security set-keychain-settings -lut 3600 "$KC"
+          security unlock-keychain -p ci "$KC"
+          echo "$MACOS_CERT_P12" | base64 --decode > $RUNNER_TEMP/cert.p12
+          security import $RUNNER_TEMP/cert.p12 -k "$KC" -P "$MACOS_CERT_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k ci "$KC"
+          security list-keychains -d user -s "$KC" $(security list-keychains -d user | tr -d '"')
+      - run: python scripts/build_desktop.py
+      - run: scripts/package_macos.sh
+      - uses: actions/upload-artifact@v4
         with:
-          name: noscam-macos
-          path: dist/NoScam-macOS.zip
+          name: noscam-${{ matrix.runner }}
+          path: dist/NoScam-macOS-*.dmg
 
   build-windows:
     needs: test
     runs-on: windows-latest
+    env:
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - run: pip install -r requirements.txt pyinstaller pillow pystray
-      - name: Build Windows Executable
-        run: python scripts/build_desktop.py
-      - name: Archive Windows Application
+      - run: python scripts/build_desktop.py
+      - name: Sign NoScam.exe
+        if: env.AZURE_CLIENT_ID != ''
+        uses: azure/trusted-signing-action@v0.5.1
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: ${{ secrets.AZURE_SIGNING_ENDPOINT }}
+          trusted-signing-account-name: ${{ secrets.AZURE_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ secrets.AZURE_CERT_PROFILE }}
+          files-folder: dist/NoScam
+          files-folder-filter: exe
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+      - name: Build the installer
+        shell: pwsh
         run: |
-          Compress-Archive -Path dist/NoScam -DestinationPath dist/NoScam-Windows.zip
-      - name: Upload Windows Artifact
-        uses: actions/upload-artifact@v4
+          choco install innosetup -y --no-progress
+          $v = python -c "import service; print(service.__version__)"
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "/DAppVersion=$v" scripts\noscam.iss
+      - name: Sign the installer
+        if: env.AZURE_CLIENT_ID != ''
+        uses: azure/trusted-signing-action@v0.5.1
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: ${{ secrets.AZURE_SIGNING_ENDPOINT }}
+          trusted-signing-account-name: ${{ secrets.AZURE_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ secrets.AZURE_CERT_PROFILE }}
+          files-folder: dist
+          files-folder-filter: exe
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+      - uses: actions/upload-artifact@v4
         with:
           name: noscam-windows
-          path: dist/NoScam-Windows.zip
+          path: dist/NoScam-Setup.exe
+
+  build-android:
+    needs: test
+    runs-on: ubuntu-latest
+    env:
+      ANDROID_KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Android SDK platform 36 (the runner image already has the SDK)
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0" > /dev/null
+      - name: Debug APK (for testers)
+        working-directory: android
+        run: |
+          ./gradlew --no-daemon assembleDebug
+          cp app/build/outputs/apk/debug/app-debug.apk ../NoScam-Android-debug.apk
+      - name: Signed release bundle (for Google Play)
+        if: env.ANDROID_KEYSTORE_B64 != ''
+        working-directory: android
+        env:
+          NOSCAM_KEYSTORE_PASSWORD: ${{ secrets.NOSCAM_KEYSTORE_PASSWORD }}
+          NOSCAM_KEY_ALIAS: ${{ secrets.NOSCAM_KEY_ALIAS }}
+          NOSCAM_KEY_PASSWORD: ${{ secrets.NOSCAM_KEY_PASSWORD }}
+        run: |
+          echo "$ANDROID_KEYSTORE_B64" | base64 --decode > $RUNNER_TEMP/upload.jks
+          NOSCAM_KEYSTORE=$RUNNER_TEMP/upload.jks ./gradlew --no-daemon bundleRelease
+          cp app/build/outputs/bundle/release/app-release.aab ../NoScam-Android.aab
+      - uses: actions/upload-artifact@v4
+        with:
+          name: noscam-android
+          path: NoScam-Android*
+
+  publish-pypi:
+    needs: [package-extension-and-source]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: python-dist
+          path: dist
+      - uses: pypa/gh-action-pypi-publish@release/v1
 
   publish-release:
-    needs: [package-extension-and-source, build-macos, build-windows]
+    needs: [package-extension-and-source, build-macos, build-windows, build-android]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     steps:
       - uses: actions/checkout@v4
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           path: release-artifacts
           merge-multiple: true
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: release-artifacts/*
+          files: |
+            release-artifacts/*.zip
+            release-artifacts/*.dmg
+            release-artifacts/*.exe
+            release-artifacts/*.apk
           draft: false
           prerelease: false
           generate_release_notes: true
