@@ -11,7 +11,6 @@ name: release
 #            AZURE_SIGNING_ENDPOINT, AZURE_SIGNING_ACCOUNT, AZURE_CERT_PROFILE
 #   Android: ANDROID_KEYSTORE_B64, NOSCAM_KEYSTORE_PASSWORD, NOSCAM_KEY_ALIAS,
 #            NOSCAM_KEY_PASSWORD
-#   PyPI:    none — uses trusted publishing (configure the project on pypi.org)
 
 on:
   push:
@@ -49,19 +48,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install build
       - name: Source bundle and the two store zips
         run: python package.py
-      - name: Wheel and sdist
-        run: python -m build --outdir dist/python
       - uses: actions/upload-artifact@v4
         with:
           name: package-bundles
           path: dist/*.zip
-      - uses: actions/upload-artifact@v4
-        with:
-          name: python-dist
-          path: dist/python/*
 
   build-macos:
     needs: test
@@ -189,20 +181,6 @@ jobs:
         with:
           name: noscam-android
           path: NoScam-Android*
-
-  publish-pypi:
-    needs: [package-extension-and-source]
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
-    environment: pypi
-    permissions:
-      id-token: write
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: python-dist
-          path: dist
-      - uses: pypa/gh-action-pypi-publish@release/v1
 
   publish-release:
     needs: [package-extension-and-source, build-macos, build-windows, build-android]

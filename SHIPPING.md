@@ -10,7 +10,7 @@ says what exists, what it costs, and who has to do it.
 |---|---|---|
 | Desktop app, macOS | `release.yml` → `NoScam-macOS-arm64.dmg`, `NoScam-macOS-x86_64.dmg` | Menu-bar app, starts at login, no Python needed |
 | Desktop app, Windows | `release.yml` → `NoScam-Setup.exe` (Inno Setup, per-user, no admin) | Tray app; start-at-login is an installer checkbox |
-| `pipx install noscam` | `release.yml` → PyPI (trusted publishing) | One line, for people who own a terminal |
+| `pipx install git+https://github.com/Aditya-galaxy/noscam` | built from the repository by pip; checked by the `wheel` CI job | One line, for people who own a terminal |
 | Chrome / Edge extension | `package.py` → `noscam-extension-chrome.zip` | Shows a “!” and a download link until the app is running |
 | Firefox extension | `package.py` → `noscam-extension-firefox.zip` | Same, with Firefox's manifest (`background.scripts`, gecko id, 121+) |
 | Android companion | `release.yml` → debug APK; signed `.aab` when the keystore secret exists | Checks every tapped link once chosen as the default browser app |
@@ -34,7 +34,6 @@ the build says, in its log, that the output is unsigned.
 | Chrome Web Store | $5 once, days of review | Developer-mode install only |
 | Edge Add-ons, Firefox AMO | Free | — |
 | Google Play | $25 once; 12 testers opted in for 14 days for a new personal account | APK only, and from Sept 30, 2026 unverified-developer APKs are blocked in BR/ID/SG/TH (worldwide in 2027) |
-| PyPI | Free; configure trusted publishing for the `pypi` environment | `pipx install` from a clone only |
 
 ### Release checklist
 

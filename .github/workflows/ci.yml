@@ -24,7 +24,7 @@ jobs:
       - name: Scams stopped, and what it costs an ordinary household
         run: python eval/score.py
 
-  # `pipx install noscam` must give a working install, not just the Python
+  # `pipx install git+…/noscam` must give a working install, not just the Python
   # code: the phone app and the extension are data files, and forgetting them
   # is silent until a user opens a blank page.
   wheel:

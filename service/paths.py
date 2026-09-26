@@ -5,7 +5,7 @@ Three ways it runs, and each puts things somewhere different:
 
   - a clone of the repository: everything sits next to `service/`, and the
     household lives in `data/` beside it, as it always has;
-  - `pipx install noscam`: the code is in site-packages, the phone app and the
+  - `pipx install git+…/noscam`: the code is in site-packages, the phone app and the
     extension are installed as data files under `<prefix>/share/noscam`;
   - the desktop app (PyInstaller): everything is unpacked under `sys._MEIPASS`,
     which is read-only, and the app is started from Finder or Explorer with a

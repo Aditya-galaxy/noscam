@@ -85,7 +85,7 @@ python3 noscam.py
 On macOS you can double-click **`Start NoScam.command`** instead; it installs
 what is missing the first time. Installed copies — the desktop apps on the
 [releases page](https://github.com/Aditya-galaxy/noscam/releases/latest), or
-`pipx install noscam` — start without the demo and keep the household in your
+`pipx install git+https://github.com/Aditya-galaxy/noscam` — start without the demo and keep the household in your
 user app-data folder; add `--demo` to see the demo there. What it would take to ship this past people who own a
 terminal is written down in [SHIPPING.md](SHIPPING.md).
 
