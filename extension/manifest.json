@@ -3,16 +3,29 @@
   "name": "NoScam",
   "version": "1.1.0",
   "description": "Holds irreversible actions — payments, one-time codes, remote-access installs — when the instruction arrived through a message.",
-  "permissions": ["webNavigation", "downloads", "storage", "tabs"],
+  "permissions": [
+    "webNavigation",
+    "downloads",
+    "storage",
+    "tabs",
+    "alarms"
+  ],
   "host_permissions": [
     "http://127.0.0.1:8787/*",
     "http://localhost:8787/*"
   ],
-  "background": { "service_worker": "background.js" },
+  "background": {
+    "service_worker": "background.js"
+  },
   "content_scripts": [
     {
-      "matches": ["http://*/*", "https://*/*"],
-      "js": ["content.js"],
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": [
+        "content.js"
+      ],
       "run_at": "document_idle",
       "all_frames": true,
       "match_about_blank": true
@@ -20,17 +33,16 @@
   ],
   "action": {
     "default_title": "NoScam",
-    "default_popup": "popup.html"
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png"
+    }
   },
   "icons": {
-    "192": "icons/icon-192.png",
-    "512": "icons/icon-512.png"
-  },
-  "offline_enabled": true,
-  "browser_specific_settings": {
-    "gecko": {
-      "id": "guardian@noscam.org",
-      "strict_min_version": "109.0"
-    }
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
   }
 }

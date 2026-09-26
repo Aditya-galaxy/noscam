@@ -1,0 +1,5 @@
+include LICENSE README.md LIMITATIONS.md requirements.txt
+recursive-include web *
+recursive-include extension *
+recursive-include demo *.py *.html *.apk
+global-exclude __pycache__ *.pyc

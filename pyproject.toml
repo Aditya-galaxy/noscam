@@ -1,6 +1,6 @@
 [project]
 name = "noscam"
-version = "1.1.0"
+dynamic = ["version"]
 description = "Refuses to let an instruction that arrived through a message authorise something irreversible."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -38,5 +38,17 @@ build-backend = "setuptools.build_meta"
 py-modules = ["noscam"]
 packages = ["service"]
 
-[tool.setuptools.package-data]
-"*" = ["web/*", "demo/**/*", "extension/*", "eval/*"]
+[tool.setuptools.dynamic]
+version = { attr = "service.__version__" }
+
+# The phone app, the extension and the demo sites are not Python packages, so
+# `package-data` cannot reach them. They are installed as data files under
+# <prefix>/share/noscam, which is where service/paths.py looks for them.
+[tool.setuptools.data-files]
+"share/noscam/web" = ["web/*"]
+"share/noscam/extension" = ["extension/*.js", "extension/*.json", "extension/*.html"]
+"share/noscam/extension/icons" = ["extension/icons/*"]
+"share/noscam/demo" = ["demo/*.py"]
+"share/noscam/demo/bank" = ["demo/bank/*.html"]
+"share/noscam/demo/bank/downloads" = ["demo/bank/downloads/*"]
+"share/noscam/demo/messages" = ["demo/messages/*"]

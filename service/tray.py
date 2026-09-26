@@ -72,11 +72,27 @@ def run_tray(port: int, on_quit: Callable[[], None], lan: bool = False) -> None:
         icon.stop()
         on_quit()
 
+    from . import autostart, updates
+
+    def toggle_autostart(icon, item):
+        if autostart.is_enabled():
+            autostart.disable()
+        else:
+            autostart.enable()
+
+    def open_release(icon, item):
+        webbrowser.open(updates.RELEASES_PAGE)
+
     menu = pystray.Menu(
         pystray.MenuItem("● NoScam Active", None, enabled=False),
+        pystray.MenuItem(lambda item: f"Update available: {updates.status()['latest']}",
+                         open_release,
+                         visible=lambda item: updates.status()["update_available"]),
         pystray.Menu.SEPARATOR,
         pystray.MenuItem("Open Guardian Dashboard", open_dashboard, default=True),
         pystray.MenuItem("View Audit Log", open_audit),
+        pystray.MenuItem("Start at login", toggle_autostart,
+                         checked=lambda item: autostart.is_enabled()),
         pystray.Menu.SEPARATOR,
         pystray.MenuItem("Quit NoScam", quit_app),
     )

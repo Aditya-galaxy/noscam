@@ -92,6 +92,8 @@
            background: var(--fg); color: #fff; padding: 12px 18px; border-radius: 8px;
            font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; }
   .toast.show { opacity: 1; }
+  .update-bar { display: block; padding: 12px 16px; background: #000; color: #fff;
+                text-decoration: underline; font-size: 15px; text-align: center; }
 </style>
 </head>
 <body>
@@ -191,10 +193,11 @@
 
     <div class="card" id="pairing-card">
       <h2>Remote Device Pairing (E2EE)</h2>
-      <p class="meta">Approve payments from anywhere in the world across cellular networks without a cloud account. Everything is end-to-end encrypted with AES-256.</p>
+      <p class="meta">Approve payments from anywhere, over mobile data, without a cloud account. Off until you turn it on. When on, holds are sent end-to-end encrypted (AES-256) through a public relay (ntfy.sh): it carries only ciphertext, but it does see that this computer is connected.</p>
       <div id="pairing-status" class="meta" style="margin-bottom:10px;">Status: Local Mode</div>
       <div class="row">
-        <button class="action deny" id="show-qr-btn">Show Pairing Link</button>
+        <button class="action deny" id="show-qr-btn">Turn on and show pairing link</button>
+        <button class="action" id="unpair-btn" style="display:none">Turn off</button>
       </div>
       <div id="qr-container" style="display:none; margin-top:14px;">
         <input id="pairing-link" type="text" readonly style="font-size:12px; margin-bottom:8px;">

@@ -4,10 +4,15 @@ Start everything, with one command.
     python3 noscam.py
 
 Judges, and anyone else who wants to see this work, should not have to run three
-terminals and read a README first. This starts the gate, the stand-in demo
-sites, seeds a household, prints the four links that matter, and opens the first
-one. Ctrl-C stops all of it.
+terminals and read a README first. From a clone of the repository this starts
+the gate, the stand-in demo sites, seeds a household, prints the four links that
+matter, and opens the first one. Ctrl-C stops all of it.
 
+An installed copy (pipx, or the desktop app) is somebody's real protection, so
+there it starts only the gate and opens the phone app's first-run setup. It
+never seeds invented payees into a real household.
+
+    --demo        also start the stand-in messenger and bank
     --no-demo     just the gate and the phone app (for real use)
     --no-open     don't open a browser
     --port 8787   where the gate listens
@@ -24,6 +29,13 @@ import webbrowser
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+
+from service import paths  # noqa: E402
+
+# The demo sites are plain scripts shipped as data; make them importable
+# wherever they were installed.
+if paths.resource_root() not in sys.path:
+    sys.path.insert(1, paths.resource_root())
 
 BANNER = """
   ███  NoScam
@@ -76,6 +88,17 @@ def wait_for(port: int, seconds: float = 10.0) -> bool:
     return False
 
 
+def already_running(port: int) -> bool:
+    import json
+    import urllib.request
+
+    try:
+        with urllib.request.urlopen(f"http://127.0.0.1:{port}/health", timeout=1) as response:
+            return json.load(response).get("service") == "noscam"
+    except Exception:                                  # noqa: BLE001 — nothing there, or not us
+        return False
+
+
 def seed(port: int) -> None:
     import json
     import urllib.request
@@ -97,8 +120,12 @@ def seed(port: int) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Start NoScam.")
     parser.add_argument("--port", type=int, default=8787)
-    parser.add_argument("--no-demo", action="store_true",
-                        help="skip the stand-in messenger and bank")
+    demo = parser.add_mutually_exclusive_group()
+    demo.add_argument("--demo", dest="demo", action="store_true", default=None,
+                      help="start the stand-in messenger and bank (the default in a "
+                           "clone of the repository)")
+    demo.add_argument("--no-demo", dest="demo", action="store_false",
+                      help="skip the stand-in messenger and bank (the default when installed)")
     parser.add_argument("--no-open", action="store_true", help="don't open a browser")
     parser.add_argument("--lan", action="store_true",
                         help="let a phone on the same Wi-Fi reach this. Off by default: "
@@ -108,17 +135,28 @@ def main() -> int:
     parser.add_argument("--headless", action="store_true",
                         help="force headless console mode without tray icon")
     args = parser.parse_args()
+    if args.demo is None:
+        args.demo = paths.is_checkout()
+    args.no_demo = not args.demo
 
     print(BANNER)
     if args.lan:
         # The service must be told before it starts: from that moment, anything
         # arriving from another device has to prove it belongs here.
         os.environ["NOSCAM_LAN"] = "1"
+    if already_running(args.port):
+        # Opened again while it is already running at login: show it, don't
+        # fail on the busy port.
+        print(f"  NoScam is already running: http://127.0.0.1:{args.port}/app/")
+        if not args.no_open:
+            webbrowser.open(f"http://127.0.0.1:{args.port}/app/")
+        return 0
     start_gate(args.port, lan=args.lan)
     if not wait_for(args.port):
         print(f"  The gate could not start on port {args.port}. Is something else using it?")
         return 1
     print(f"  gate            http://127.0.0.1:{args.port}")
+    print(f"  household data  {paths.data_dir()}")
     if args.lan:
         from service.app import household_token
 
@@ -149,12 +187,22 @@ def main() -> int:
         print("\n  No GEMINI_API_KEY: the advice line is off and the deterministic\n"
               "  explanation is shown instead. Everything else works.")
 
+    from service import updates
+
+    updates.start_background_checks(on_newer=lambda latest: print(
+        f"\n  A newer NoScam ({latest}) is available: {updates.RELEASES_PAGE}\n"
+        "  It is not installed automatically. Nothing changes until you choose to.\n"))
+
     if not args.no_open:
         webbrowser.open("http://localhost:8790" if not args.no_demo
                         else f"http://127.0.0.1:{args.port}/app/")
 
     stop_event = threading.Event()
     is_frozen = getattr(sys, "frozen", False)
+    if is_frozen and os.name != "nt":      # on Windows the installer asks instead
+        from service import autostart
+
+        autostart.enable_on_first_run(paths.data_dir())
     use_tray = (args.tray or is_frozen) and not args.headless
 
     if use_tray:

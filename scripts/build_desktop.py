@@ -19,6 +19,13 @@ DIST = ROOT / "dist"
 BUILD = ROOT / "build"
 
 
+def version() -> str:
+    sys.path.insert(0, str(ROOT))
+    from service import __version__
+
+    return __version__
+
+
 def check_prerequisites():
     try:
         import PyInstaller  # noqa: F401
@@ -58,6 +65,9 @@ def build():
         "--hidden-import=PIL",
         "--hidden-import=fastapi",
         "--hidden-import=pydantic",
+        # pystray picks its backend at runtime, so PyInstaller cannot see it.
+        "--hidden-import=pystray._darwin",
+        "--hidden-import=pystray._win32",
     ]
 
     icon_path = ROOT / "web" / "icon-512.png"
@@ -68,7 +78,9 @@ def build():
         "-m",
         "PyInstaller",
         "--noconsole",
+        "--onedir",                       # onefile apps unpack on every launch and notarise badly
         "--name=NoScam",
+        "--osx-bundle-identifier=org.noscam.desktop",
         "--clean",
         "-y",
         *data_args,
@@ -86,7 +98,13 @@ def build():
     print("\nStandalone build succeeded!")
     if os_name == "darwin":
         app_path = DIST / "NoScam.app"
+        # A menu-bar app: no Dock icon, no app menu, just the icon by the clock.
+        plist = app_path / "Contents" / "Info.plist"
+        subprocess.run(["plutil", "-replace", "LSUIElement", "-bool", "YES", str(plist)], check=True)
+        subprocess.run(["plutil", "-replace", "CFBundleShortVersionString", "-string",
+                        version(), str(plist)], check=True)
         print(f"macOS Application: {app_path}")
+        print("Next: scripts/package_macos.sh signs, notarises and wraps it in a DMG.")
     elif os_name == "windows":
         exe_path = DIST / "NoScam" / "NoScam.exe"
         print(f"Windows Executable: {exe_path}")

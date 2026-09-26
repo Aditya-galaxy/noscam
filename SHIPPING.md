@@ -6,54 +6,46 @@ says what exists, what it costs, and who has to do it.
 
 ## Where it is today
 
-| Piece | State | What a user must do |
+| Piece | Built by | What a user gets |
 |---|---|---|
-| The gate (Python service) | Works | Run one command, or double-click `Start NoScam.command` |
-| Chrome extension | Works | Load unpacked in developer mode |
-| Phone app | Works | Open a URL; optionally add to home screen |
-| Setting limits and payees | Works, from the phone | Nothing technical |
+| Desktop app, macOS | `release.yml` → `NoScam-macOS-arm64.dmg`, `NoScam-macOS-x86_64.dmg` | Menu-bar app, starts at login, no Python needed |
+| Desktop app, Windows | `release.yml` → `NoScam-Setup.exe` (Inno Setup, per-user, no admin) | Tray app; start-at-login is an installer checkbox |
+| `pipx install noscam` | `release.yml` → PyPI (trusted publishing) | One line, for people who own a terminal |
+| Chrome / Edge extension | `package.py` → `noscam-extension-chrome.zip` | Shows a “!” and a download link until the app is running |
+| Firefox extension | `package.py` → `noscam-extension-firefox.zip` | Same, with Firefox's manifest (`background.scripts`, gecko id, 121+) |
+| Android companion | `release.yml` → debug APK; signed `.aab` when the keystore secret exists | Checks every tapped link once chosen as the default browser app |
 
-So: usable today by someone comfortable with a terminal, and by a *household*
-where one person is. That is a real audience — the adult child who sets things
-up for a parent is exactly the guardian this product already assumes exists —
-but it is not yet "download and go".
+An installed copy keeps the household in the platform's per-user app-data
+folder (`~/Library/Application Support/NoScam`, `%APPDATA%\NoScam`,
+`~/.local/share/noscam`), starts without the demo, and opens first-run setup.
+A clone of the repository keeps the old behaviour: `data/` beside the code and
+the demo on.
 
-## The three things between here and that
+## What still costs money or a person
 
-### 1. The extension, without developer mode — about a week
+The pipeline is ready; each item below switches on when its secret is added to
+the repository (the names are listed at the top of `release.yml`). Until then
+the build says, in its log, that the output is unsigned.
 
-Chrome Web Store: a **$5 one-time** developer fee, a privacy policy, a listing,
-and review that takes days (longer for an extension requesting `downloads` and
-broad host permissions, which this one does and cannot avoid).
+| Step | Cost | Without it |
+|---|---|---|
+| Apple Developer ID + notarisation | $99/year | Gatekeeper refuses to open the app from a download |
+| Windows signing — Azure Artifact Signing | ~$10/month (US/Canada individuals; elsewhere an OV certificate, ~$200–400/year) | SmartScreen warns on every download, until reputation builds |
+| Chrome Web Store | $5 once, days of review | Developer-mode install only |
+| Edge Add-ons, Firefox AMO | Free | — |
+| Google Play | $25 once; 12 testers opted in for 14 days for a new personal account | APK only, and from Sept 30, 2026 unverified-developer APKs are blocked in BR/ID/SG/TH (worldwide in 2027) |
+| PyPI | Free; configure trusted publishing for the `pypi` environment | `pipx install` from a clone only |
 
-What review will ask, and the honest answers:
-- *Why `<all_urls>`?* Because a payment page can be any site.
-- *Why `downloads`?* To cancel a remote-access installer before it lands.
-- *What leaves the machine?* Nothing, except the optional advice line to Gemini,
-  which is off without an API key.
+### Release checklist
 
-Firefox is a second listing from the same source, and Safari needs a separate
-Xcode project.
-
-### 2. The service, without Python — about two days
-
-Today it needs Python and four packages. Two real options:
-
-- **`pipx install noscam`** — `pyproject.toml` already declares the entry point,
-  so this works from the repository right now and would work from PyPI after a
-  `twine upload`. Still a terminal, but one line and no clone.
-- **A single binary.** `pyinstaller --onefile noscam.py` produces a ~15 MB
-  executable per platform, plus a login item so it starts with the machine. On
-  macOS it needs an Apple Developer ID ($99/year) and notarisation, or every
-  user meets Gatekeeper. On Windows, unsigned binaries meet SmartScreen; a
-  code-signing certificate is ~$200/year.
-
-That cost is the honest reason this is not already a download.
-
-### 3. The phone, past pasting — see LIMITATIONS.md
-
-Android needs a small native app with an `http`/`https` `VIEW` intent-filter to
-intercept the tap itself. iOS has no equivalent outside a Safari Web Extension.
+1. Bump `service/__init__.py` and `extension/manifest.json` (CI refuses a tag
+   that disagrees with either) and `versionName`/`versionCode` in
+   `android/app/build.gradle`.
+2. `git tag vX.Y.Z && git push --tags`.
+3. Upload `noscam-extension-chrome.zip` and `-firefox.zip` from the release to
+   the stores, with the reviewer notes in `docs/CWS_SUBMISSION.md`.
+4. Installed copies see the new version within a day: a line in the phone app,
+   the extension popup and the tray menu. Nothing updates itself.
 
 ## What we would *not* ship without
 
@@ -70,10 +62,10 @@ intercept the tap itself. iOS has no equivalent outside a Safari Web Extension.
 
 ## Update and trust model
 
-The extension would auto-update through the store; the service would not, which
-is the wrong way round for a security tool — so a released version needs a
-version check and a plain "there is a newer NoScam" notice, never a silent
-self-update. Nothing that can quietly change what the gate does should be able
+The extension auto-updates through the store; the service does not, which is
+the wrong way round for a security tool — so the service checks GitHub for the
+latest release once a day (`service/updates.py`) and says so plainly in the
+phone app, the extension popup and the tray menu. It never updates itself. Nothing that can quietly change what the gate does should be able
 to change it without the household noticing.
 
 ## What this costs to run

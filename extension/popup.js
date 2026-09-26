@@ -20,13 +20,26 @@ chrome.runtime.sendMessage({ kind: "noscam:state" }, (reply) => {
 
   if (!reply || !reply.ok) {
     dot.className = "dot off";
-    status.textContent = "Not running";
-    document.getElementById("sub").textContent = "start it on this computer";
-    arrival.textContent = "NoScam can't check anything until the service is running.";
+    status.textContent = "Not protecting you yet";
+    document.getElementById("sub").textContent = "the NoScam app isn't running";
+    arrival.textContent = "This extension only watches. The decisions are made by the " +
+                          "NoScam app on this computer, and it isn't running — so " +
+                          "nothing is being checked right now.";
+    const button = document.querySelector("a.button");
+    button.href = "https://aditya-galaxy.github.io/noscam/#install";
+    button.textContent = "Get or start the NoScam app";
     return;
   }
 
-  const { household, provenance } = reply.data;
+  const { household, provenance, version } = reply.data;
+  if (version && version.update_available) {
+    const note = document.createElement("a");
+    note.href = version.url;
+    note.target = "_blank";
+    note.className = "update";
+    note.textContent = `NoScam ${version.latest} is available (you have ${version.current}).`;
+    document.querySelector("main").prepend(note);
+  }
   dot.className = "dot on";
   status.textContent = "Watching this computer";
   document.getElementById("sub").textContent = `${household.limits.guardian_name} approves`;

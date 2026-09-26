@@ -266,8 +266,15 @@
   <ol class="steps">
     <li>
       <h3>Download and start it</h3>
-      <p><a href="https://github.com/Aditya-galaxy/noscam/releases/latest/download/noscam.zip">Download
-        the ZIP</a> and unzip it, or clone the repository. Then, in a terminal:</p>
+      <p>The easiest way is the app for your computer, from the
+        <a href="https://github.com/Aditya-galaxy/noscam/releases/latest">latest release</a>:
+        <strong>NoScam-macOS-arm64.dmg</strong> (Apple silicon),
+        <strong>NoScam-macOS-x86_64.dmg</strong> (Intel Mac) or
+        <strong>NoScam-Setup.exe</strong> (Windows). It sits in the menu bar or system
+        tray and starts when you log in.</p>
+      <p>Or, with Python 3.11 or newer: <code>pipx install noscam</code>, then
+        <code>noscam</code>. Or <a href="https://github.com/Aditya-galaxy/noscam/releases/latest/download/noscam.zip">download
+        the ZIP</a>, and in a terminal:</p>
       <pre><code>cd noscam
 python3 -m pip install -r requirements.txt
 python3 noscam.py</code></pre>
@@ -309,6 +316,8 @@ python3 noscam.py</code></pre>
     <tr><td>Card, Aadhaar or PAN numbers you type</td><td>Never sent anywhere — only the <em>kind</em> of number is checked, never the number</td></tr>
     <tr><td>Your bank password</td><td>Never read. NoScam sees that a password field exists, not what is in it</td></tr>
     <tr><td>The one-line advice on a blocked screen</td><td>Sent to Google’s Gemini if you supply an API key. Leave it out and NoScam uses its own wording instead</td></tr>
+    <tr><td>“Approve from anywhere” (off unless you turn it on)</td><td>Held payments are encrypted on your computer and passed through a public relay (ntfy.sh) to your paired phone. The relay sees only scrambled data and that your computer is connected. Turn it off in the phone page and the old link stops working</td></tr>
+    <tr><td>Checking for a newer version, once a day</td><td>Asks GitHub which release is newest. Nothing about you or your household is sent. Nothing is installed automatically</td></tr>
     <tr><td>Links you ask it to check</td><td>Fetched from your computer, so that website sees a visit from your address — the same as if you had opened it, minus your cookies</td></tr>
   </table>
 

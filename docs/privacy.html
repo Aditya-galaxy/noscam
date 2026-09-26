@@ -91,16 +91,24 @@
       log on your hard drive (<code>data/audit.jsonl</code>) so you and your family have a clear record of
       what was held or approved.
     </li>
+    <li>
+      <strong>Update check:</strong> Once a day the desktop program asks GitHub
+      (<code>api.github.com</code>) for the newest release number, so it can tell you when a newer
+      version exists. The request contains nothing about you or your household, and nothing is
+      downloaded or installed automatically. Set <code>NOSCAM_NO_UPDATE_CHECK=1</code> to turn it off.
+    </li>
   </ul>
 
   <h2>3. Third-party network communications</h2>
   <p>
-    By default, NoScam operates entirely on your local machine (<code>127.0.0.1</code>). There are two
-    strictly optional external communications:
+    By default, NoScam operates entirely on your local machine (<code>127.0.0.1</code>). There are three
+    external communications, and none of them carries your payment details in readable form:
   </p>
   <ul>
     <li>
-      <strong>End-to-End Encrypted (E2EE) Remote Pairing:</strong> If you choose to pair a second device
+      <strong>End-to-End Encrypted (E2EE) Remote Pairing — off by default:</strong> NoScam makes no
+      connection to the relay until you press “Turn on” in the phone page, and stops when you press
+      “Turn off”. If you choose to pair a second device
       (such as an adult child's phone in another city), notification payloads are encrypted client-side
       with AES-256-GCM before being dispatched through a stateless blind pub/sub relay (such as
       <code>ntfy.sh</code>). The relay operator sees only ciphertext blobs and has no access to transaction
@@ -108,8 +116,9 @@
     </li>
     <li>
       <strong>Optional AI Coaching:</strong> If you explicitly configure a Google Gemini API key, NoScam
-      sends the factual decision reason code to generate a single sentence of plain advice. No bank account
-      numbers or personally identifiable credentials are ever sent. Without an API key, this feature is
+      sends the decision's reason code, the website's address, the payee name as shown on the page
+      (truncated), the amount and any file name to generate a single sentence of plain advice. Account numbers, card numbers, passwords
+      and one-time codes are never sent. Without an API key, this feature is
       off and deterministic explanations are used.
     </li>
   </ul>

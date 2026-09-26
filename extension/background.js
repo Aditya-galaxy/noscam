@@ -145,6 +145,52 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   removeTabState(tabId);
 });
 
+// --- is the NoScam app running? -------------------------------------------
+// The extension is only the eyes; the decisions are made by the NoScam app on
+// this computer. Installed from a store without the app, it must say so plainly
+// instead of looking like it works: a security tool that silently does nothing
+// is worse than none.
+
+const DOWNLOAD_PAGE = "https://aditya-galaxy.github.io/noscam/#install";
+
+async function serviceRunning() {
+  try {
+    const response = await fetch(`${SERVICE}/health`, { cache: "no-store" });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+async function refreshBadge() {
+  const up = await serviceRunning();
+  try {
+    await chrome.action.setBadgeText({ text: up ? "" : "!" });
+    await chrome.action.setBadgeBackgroundColor({ color: "#000" });
+    await chrome.action.setTitle({
+      title: up ? "NoScam — watching this computer"
+                : "NoScam — the NoScam app is not running, so nothing is being checked",
+    });
+  } catch {
+    // action API unavailable (e.g. during shutdown); nothing to show
+  }
+  return up;
+}
+
+chrome.runtime.onInstalled.addListener(async (details) => {
+  const up = await refreshBadge();
+  if (details.reason === "install" && !up) {
+    chrome.tabs.create({ url: DOWNLOAD_PAGE });
+  }
+});
+chrome.runtime.onStartup.addListener(refreshBadge);
+if (chrome.alarms) {
+  chrome.alarms.create("noscam:health", { periodInMinutes: 1 });
+  chrome.alarms.onAlarm.addListener((alarm) => {
+    if (alarm.name === "noscam:health") refreshBadge();
+  });
+}
+
 async function ask(path, body) {
   const response = await fetch(`${SERVICE}${path}`, {
     method: body ? "POST" : "GET",
@@ -215,10 +261,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     },
     "noscam:override": () =>
       ask(`/holds/${message.holdId}/override`, { reason: message.reason || "" }),
-    "noscam:state": async () => ({
-      provenance: await getProvenance(tabId),
-      household: await ask("/household"),
-    }),
+    "noscam:state": async () => {
+      refreshBadge();
+      return {
+        provenance: await getProvenance(tabId),
+        household: await ask("/household"),
+        version: await ask("/version").catch(() => null),
+      };
+    },
   };
 
   const handler = handlers[message.kind];
