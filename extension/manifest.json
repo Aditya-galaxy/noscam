@@ -1,13 +1,12 @@
 {
   "manifest_version": 3,
   "name": "NoScam",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Holds irreversible actions — payments, one-time codes, remote-access installs — when the instruction arrived through a message.",
   "permissions": [
     "webNavigation",
     "downloads",
     "storage",
-    "tabs",
     "alarms"
   ],
   "host_permissions": [
@@ -18,6 +17,18 @@
     "service_worker": "background.js"
   },
   "content_scripts": [
+    {
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": [
+        "marker.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": true,
+      "match_about_blank": true
+    },
     {
       "matches": [
         "http://*/*",

@@ -580,6 +580,9 @@
 
   const start = () => {
     if (window.__noscamLoaded) return;      // never wire a page twice
+    // The page's own copy stands down when the extension is installed, which
+    // marks the page before any page script runs (marker.js).
+    if (!inExtension && document.documentElement.getAttribute("data-noscam") === "extension") return;
     window.__noscamLoaded = inExtension ? "extension" : "page";
     scan();
     gateClicks();
