@@ -167,7 +167,8 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
-      - uses: android-actions/setup-android@v3
+      - name: Android SDK platform 36 (the runner image already has the SDK)
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0" > /dev/null
       - name: Debug APK (for testers)
         working-directory: android
         run: |
