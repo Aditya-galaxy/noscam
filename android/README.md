@@ -22,6 +22,44 @@ This native companion registers as a handler for `http` and `https` `VIEW` inten
 4. **No dangerous permissions**:
    - Does **not** request Accessibility Services or SMS reading permissions. This protects users from learning the dangerous habit of granting screen-reading privileges that malware exploits.
 
+### App files sent in chats
+
+Spy and bank-theft apps mostly arrive as **files** in a chat — "Posting
+list.pdf.apk", "Army welfare", "Traffic challan", "Wedding invitation" — not as
+links. NoScam registers for `application/vnd.android.package-archive`, so the
+first time one is tapped Android asks which app should open it. Choose
+**NoScam → Always**, and from then on an app file from a chat opens NoScam
+instead of the installer. It says who sent it, reads the file's manifest to
+list what the app could do (read SMS codes, read notifications, record,
+draw over your bank), calls out names built to look like documents, and does
+**not** pass the file on. The way through is the Play Store, and the screen
+says so.
+
+### Apps already on the phone
+
+**Check the apps on this phone** lists apps that were installed outside an app
+store *and* can take the phone over — active accessibility service,
+notification reader, device administrator, SMS or call-log access, drawing over
+other apps — plus remote-control apps from anywhere. On Android 11+ it knows
+which app started the install, so it can say "installed from a file sent on
+WhatsApp". A background job checks for new installs about every 30 minutes and
+sends a notification when one of them looks like a takeover.
+
+The rules are in `AppRisk.kt`, plain Kotlin with unit tests
+(`./gradlew testDebugUnitTest`).
+
+### What it cannot do
+
+* **Block an install outright.** Only a device-owner (MDM) app can forbid
+  installs on Android; that is the right tool for issued devices and a
+  possible later mode. Someone who picks the system installer in the chooser,
+  or installs from a file manager, gets through — and the installed-app check
+  then catches it, within about half an hour.
+* **See everything without QUERY_ALL_PACKAGES.** Google Play allows it for apps
+  whose core purpose is scanning installed apps for security; declare it so.
+* NoScam still does not use an accessibility service. It is the permission the
+  apps it hunts ask for.
+
 ---
 
 ## 2. Building the App

@@ -54,4 +54,5 @@ android {
 // The app is plain framework Activity and View code: no AndroidX, no Material,
 // nothing to keep up to date or to widen the attack surface.
 dependencies {
+    testImplementation 'junit:junit:4.13.2'
 }
