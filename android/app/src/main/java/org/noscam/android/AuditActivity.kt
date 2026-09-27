@@ -71,12 +71,12 @@ class AuditActivity : Activity() {
     }
 
     private fun addApp(layout: LinearLayout, facts: AppFacts, assessment: Assessment,
-                       text: (String, Float, Boolean, Int, Int) -> TextView) {
+                       line: (String, Float, Boolean, Int, Int) -> TextView) {
         val tag = if (assessment.level == RiskLevel.HIGH) "Remove unless you installed it yourself"
                   else "Worth checking"
-        layout.addView(text(facts.label, 18f, true, Color.BLACK, 4))
-        layout.addView(text(tag, 13f, false, Color.GRAY, 8))
-        for (reason in assessment.reasons) layout.addView(text("• It $reason", 15f, false, Color.DKGRAY, 6))
+        layout.addView(line(facts.label, 18f, true, Color.BLACK, 4))
+        layout.addView(line(tag, 13f, false, Color.GRAY, 8))
+        for (reason in assessment.reasons) layout.addView(line("• It $reason", 15f, false, Color.DKGRAY, 6))
 
         val row = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
