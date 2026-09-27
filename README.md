@@ -4,6 +4,8 @@
 [**Watch the demo (3 min)**](https://aditya-galaxy.github.io/noscam/noscam-demo.mp4) ·
 [What it cannot do](LIMITATIONS.md)
 
+🥈 **2nd place, TLN Cybersecurity Challenge 2026.**
+
 **The scams that take the most money never break any encryption. They get the
 person to authorise it.**
 
@@ -256,7 +258,7 @@ python3 eval/score.py     # the two-axis scorecard
 
 ## AI disclosure
 
-Built for the TLN Cybersecurity Challenge 2026 with **Claude Code** (Anthropic)
+Built for the TLN Cybersecurity Challenge 2026 (2nd place) with **Claude Code** (Anthropic)
 as a pair programmer: it wrote code and tests to my direction, and I reviewed,
 corrected and tested everything in this repository. **Gemini** is a runtime
 dependency for the single advice line described above, and is disabled without
