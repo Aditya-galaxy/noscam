@@ -31,6 +31,12 @@ data class AppFacts(
     val declaresAccessibility: Boolean = false,
     val declaresNotificationListener: Boolean = false,
     val declaresDeviceAdmin: Boolean = false,
+    /** Shows up in the app drawer. Spyware hides its icon after first launch. */
+    val hasLauncherIcon: Boolean = true,
+    /** Can act as a contactless card (HostApduService) — "ghost tapping". */
+    val declaresCardEmulation: Boolean = false,
+    /** Starts itself when the phone boots. */
+    val startsAtBoot: Boolean = false,
 )
 
 enum class RiskLevel { NONE, WATCH, HIGH }
@@ -131,13 +137,30 @@ object AppRisk {
         "${P}SYSTEM_ALERT_WINDOW", "${P}MANAGE_EXTERNAL_STORAGE",
     )
 
+    /** Names chosen to look like part of Android, so nobody removes them. */
+    private val SYSTEM_LOOKING_LABEL = Regex(
+        """^(system|android|google|play|sim toolkit|wi-?fi|bluetooth|settings|device|battery|""" +
+            """security|update|sync|service|services|core|framework|backup|cloud|network)\b.*""" +
+            """|.*\b(system|service|services|update|updater|framework|sync)$""",
+        RegexOption.IGNORE_CASE)
+
+    /** Package names used by Android and Google. Google's own apps carry them
+     *  when installed from Play; one that arrived any other way is pretending. */
+    private val SYSTEM_PACKAGE_PREFIXES = listOf("android.", "com.android.", "com.google.android.")
+
+    fun isSideloaded(app: AppFacts): Boolean =
+        !app.isSystem && (app.installer == null || app.installer !in TRUSTED_STORES)
+
+    fun impersonatesSystem(app: AppFacts): Boolean =
+        isSideloaded(app) && SYSTEM_PACKAGE_PREFIXES.any { app.packageName.startsWith(it) }
+
     fun sourceName(pkg: String?): String? =
         pkg?.let { MESSENGERS[it] ?: BROWSERS[it] }
 
     fun assess(app: AppFacts): Assessment {
         if (app.isSystem) return Assessment(RiskLevel.NONE, false, null, emptyList())
 
-        val sideloaded = app.installer == null || app.installer !in TRUSTED_STORES
+        val sideloaded = isSideloaded(app)
         val fromMessenger = app.initiator in MESSENGERS || app.installer in MESSENGERS
         val cameFrom = sourceName(app.initiator) ?: sourceName(app.installer)
 
@@ -172,8 +195,34 @@ object AppRisk {
                 if (permission in TAKEOVER_PERMISSIONS) takeover = true
             }
         }
+        if (app.declaresCardEmulation && sideloaded) {
+            reasons += "can pretend to be a contactless bank card — the \"tap your card on your phone\" theft"
+            takeover = true
+        }
+
+        // How spy apps hide. None of these is harmful alone; each makes the
+        // rest worse, because it is how a person fails to notice them.
+        val hiding = mutableListOf<String>()
+        if (impersonatesSystem(app)) {
+            hiding += "uses a name reserved for Android and Google (${app.packageName}), but did not come from an app store"
+        }
+        if (!app.hasLauncherIcon && sideloaded) {
+            hiding += "has no icon in your app list, so you would not see it"
+        }
+        if (sideloaded && SYSTEM_LOOKING_LABEL.matches(app.label.trim())) {
+            hiding += "is named \"${app.label}\" to look like part of the phone, but it is not"
+        }
+        if (app.startsAtBoot && sideloaded && (reasons.isNotEmpty() || hiding.isNotEmpty())) {
+            hiding += "starts itself every time the phone is switched on"
+        }
+        val hidden = hiding.isNotEmpty()
+        reasons += hiding
 
         val level = when {
+            // Pretending to be Android is never innocent.
+            impersonatesSystem(app) -> RiskLevel.HIGH
+            // Hiding, and able to do something with what it sees.
+            sideloaded && hidden && reasons.size > hiding.size -> RiskLevel.HIGH
             // The pattern that matters: installed outside a store, and able
             // to take over the phone or its codes.
             sideloaded && takeover -> RiskLevel.HIGH

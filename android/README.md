@@ -45,6 +45,27 @@ which app started the install, so it can say "installed from a file sent on
 WhatsApp". A background job checks for new installs about every 30 minutes and
 sends a notification when one of them looks like a takeover.
 
+#### Apps that hide
+
+Spy apps rarely hide by not existing; they hide by not being noticed. The
+package manager lists every installed app whether it has an icon or not, so
+the check compares that list with what the launcher shows and calls out:
+
+* **no icon** — the app removed its own launcher entry after first run (a
+  common "this app is not compatible and was removed" trick);
+* **a name like part of the phone** — "System Update", "Wi-Fi Service",
+  "Google Services" — on an app that did not come from a store;
+* **a package name reserved for Android or Google** (`com.android.…`) on an app
+  that did not come from a store, which is always impersonation;
+* **starts at boot**, when combined with any of the above;
+* **can pretend to be a contactless card** (the NGate / SuperCard X "tap your
+  card on your phone" theft).
+
+What it still cannot see: apps in a work profile or Android 15's Private
+Space (another user, invisible to ordinary apps), and anything with root or
+firmware-level access, which no app can inspect — that needs a forensic tool
+such as Amnesty's MVT, or a factory reset.
+
 The rules are in `AppRisk.kt`, plain Kotlin with unit tests
 (`./gradlew testDebugUnitTest`).
 
