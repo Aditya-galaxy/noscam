@@ -83,4 +83,50 @@ class AppRiskTest {
         val reasons = AppRisk.assessApk("app-release.apk", null, emptySet(), false, false, false)
         assertTrue(reasons.none { it.contains("look like a document") })
     }
+
+    private val sideload = "com.google.android.packageinstaller"
+
+    @Test fun `a hidden app that reads SMS is high`() {
+        val result = AppRisk.assess(app(installer = sideload, initiator = "com.android.documentsui",
+                                        granted = setOf(sms)).copy(hasLauncherIcon = false))
+        assertEquals(RiskLevel.HIGH, result.level)
+        assertTrue(result.reasons.any { it.contains("no icon") })
+    }
+
+    @Test fun `a hidden app with no permissions is only worth checking`() {
+        val result = AppRisk.assess(app(installer = sideload, initiator = null)
+            .copy(hasLauncherIcon = false))
+        assertEquals(RiskLevel.WATCH, result.level)
+    }
+
+    @Test fun `a store app without an icon is not accused of hiding`() {
+        val result = AppRisk.assess(app().copy(hasLauncherIcon = false))
+        assertEquals(RiskLevel.NONE, result.level)
+    }
+
+    @Test fun `using a package name reserved for Android is high`() {
+        val result = AppRisk.assess(app(pkg = "com.android.system.update", installer = sideload))
+        assertEquals(RiskLevel.HIGH, result.level)
+        assertTrue(result.reasons.any { it.contains("reserved for Android") })
+    }
+
+    @Test fun `a sideloaded app named like the system is called out`() {
+        val result = AppRisk.assess(app(installer = sideload, initiator = null, granted = setOf(camera))
+            .copy(label = "System Update"))
+        assertTrue(result.reasons.any { it.contains("look like part of the phone") })
+        assertEquals(RiskLevel.HIGH, result.level)
+    }
+
+    @Test fun `a sideloaded contactless card emulator is the ghost tapping pattern`() {
+        val result = AppRisk.assess(app(installer = sideload, initiator = "com.android.chrome")
+            .copy(declaresCardEmulation = true))
+        assertEquals(RiskLevel.HIGH, result.level)
+        assertTrue(result.reasons.any { it.contains("contactless bank card") })
+    }
+
+    @Test fun `Google Pay from the Play Store may emulate a card`() {
+        val result = AppRisk.assess(app(pkg = "com.google.android.apps.nbu.paisa.user")
+            .copy(declaresCardEmulation = true, isSystem = false))
+        assertEquals(RiskLevel.NONE, result.level)
+    }
 }

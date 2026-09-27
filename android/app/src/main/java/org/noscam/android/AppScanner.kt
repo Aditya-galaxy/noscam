@@ -113,6 +113,15 @@ class AppScanner(private val context: Context) {
             declaresDeviceAdmin = receivers.any {
                 it.permission == "android.permission.BIND_DEVICE_ADMIN"
             },
+            // The package manager lists every installed app, icon or not; the
+            // launcher only shows the ones that ask to be shown. Comparing the
+            // two is how a hidden app is found.
+            hasLauncherIcon = pm.getLaunchIntentForPackage(info.packageName) != null ||
+                pm.getLeanbackLaunchIntentForPackage(info.packageName) != null,
+            declaresCardEmulation = services.any {
+                it.permission == "android.permission.BIND_NFC_SERVICE"
+            },
+            startsAtBoot = "android.permission.RECEIVE_BOOT_COMPLETED" in requested,
         )
     }
 
