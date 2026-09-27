@@ -3,6 +3,17 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- The installed-app check has to see every app to find the one that is
+         spying. Google Play permits this for security apps whose core purpose
+         is scanning installed apps; declare it in the Play Console as such. -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
+    <!-- "Remove" hands the person to Android's own uninstall confirmation. -->
+    <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
+    <!-- Say when a newly installed app can take the phone over. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Keep the periodic install check scheduled across reboots. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
     <!-- Android 11+ hides other apps unless we say what we need to see: here,
          the browsers a checked link can be handed on to. -->
     <queries>
@@ -53,6 +64,33 @@
                 <data android:mimeType="text/plain" />
             </intent-filter>
         </activity>
+
+        <!-- Opened instead of the system installer when an app file is tapped
+             in a chat, once chosen as the default for app files. -->
+        <activity
+            android:name=".ApkGuardActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.Material.Light.NoActionBar">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <action android:name="android.intent.action.INSTALL_PACKAGE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:mimeType="application/vnd.android.package-archive" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".AuditActivity"
+            android:exported="false"
+            android:label="Apps to check" />
+
+        <service
+            android:name=".InstallWatcherJob"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
 
     </application>
 

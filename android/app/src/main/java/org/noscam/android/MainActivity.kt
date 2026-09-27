@@ -204,6 +204,17 @@ class MainActivity : Activity() {
         setContentView(root)
     }
 
+    /** Look for newly installed apps now and every half hour after. Android 13+
+     *  needs the person's permission before NoScam can say what it finds. */
+    private fun startInstallWatch() {
+        InstallWatcher.schedule(this)
+        Thread { InstallWatcher.check(applicationContext) }.start()
+        if (Build.VERSION.SDK_INT >= 33 &&
+            checkSelfPermission("android.permission.POST_NOTIFICATIONS") != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(arrayOf("android.permission.POST_NOTIFICATIONS"), REQUEST_NOTIFY)
+        }
+    }
+
     private fun isDefaultLinkHandler(): Boolean {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val roles = getSystemService(RoleManager::class.java)
@@ -244,7 +255,15 @@ class MainActivity : Activity() {
         if (extractUrl(intent).isNullOrBlank()) showLauncherDashboard()
     }
 
+    private var watchStarted = false
+
     private fun showLauncherDashboard() {
+        // Only from the home screen, never while someone is mid-way through
+        // opening a link: that is not the moment for a permission prompt.
+        if (!watchStarted) {
+            watchStarted = true
+            startInstallWatch()
+        }
         val active = isDefaultLinkHandler()
 
         val layout = LinearLayout(this).apply {
@@ -289,6 +308,25 @@ class MainActivity : Activity() {
             }
             layout.addView(btnEnable)
         }
+
+        val apps = TextView(this).apply {
+            text = "\nApp files sent in chats are how spy and bank-theft apps get onto phones. " +
+                "The next time you tap one, Android asks which app to open it with: choose " +
+                "NoScam, then Always."
+            textSize = 15f
+            setTextColor(Color.DKGRAY)
+            gravity = Gravity.CENTER
+            setPadding(0, 24, 0, 16)
+        }
+        layout.addView(apps)
+
+        val btnAudit = Button(this).apply {
+            text = "Check the apps on this phone"
+            setBackgroundColor(if (active) Color.BLACK else Color.TRANSPARENT)
+            setTextColor(if (active) Color.WHITE else Color.BLACK)
+            setOnClickListener { startActivity(Intent(this@MainActivity, AuditActivity::class.java)) }
+        }
+        layout.addView(btnAudit)
 
         val btnAbout = Button(this).apply {
             text = "How NoScam works"
@@ -336,6 +374,7 @@ class MainActivity : Activity() {
 
     companion object {
         private const val REQUEST_ROLE = 1
+        private const val REQUEST_NOTIFY = 2
         private val PREFERRED_BROWSERS = listOf(
             "com.android.chrome", "com.sec.android.app.sbrowser", "org.mozilla.firefox",
             "com.microsoft.emmx", "com.brave.browser", "com.opera.browser",
