@@ -21,18 +21,28 @@ import time
 from typing import Callable, Optional
 
 import httpx
+from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 
 logger = logging.getLogger("noscam.relay")
 
 # ntfy.sh by default; a household or an organisation that would rather not
 # depend on a third party can point this at its own ntfy server.
 DEFAULT_RELAY_URL = os.environ.get("NOSCAM_RELAY_URL", "https://ntfy.sh")
+V2_MAGIC = b"\x02"
 
 
-def encrypt_payload(key: bytes | str, data: dict) -> str:
+def derive_session_key(root_key: bytes, salt: bytes, info: bytes = b"noscam_hold_session") -> bytes:
+    """Derive an ephemeral session key using HKDF-SHA256 for Perfect Forward Secrecy."""
+    hkdf = HKDF(algorithm=hashes.SHA256(), length=32, salt=salt, info=info)
+    return hkdf.derive(root_key)
+
+
+def encrypt_payload(key: bytes | str, data: dict, forward_secure: bool = True) -> str:
     """Encrypt a dictionary payload with AES-256-GCM.
-    Returns a base64 string with a 12-byte IV prepended to the ciphertext.
+    When forward_secure=True (default), derives an ephemeral session key via HKDF-SHA256
+    with a random 16-byte salt, returning wire format: [0x02][16-byte salt][12-byte IV][ciphertext+tag].
     """
     if isinstance(key, str):
         key = bytes.fromhex(key) if len(key) == 64 else key.encode("utf-8")
@@ -41,19 +51,41 @@ def encrypt_payload(key: bytes | str, data: dict) -> str:
 
     nonce = secrets.token_bytes(12)
     payload_bytes = json.dumps(data, separators=(",", ":")).encode("utf-8")
-    aesgcm = AESGCM(key)
-    ciphertext = aesgcm.encrypt(nonce, payload_bytes, None)
-    return base64.b64encode(nonce + ciphertext).decode("ascii")
+
+    if forward_secure:
+        salt = secrets.token_bytes(16)
+        session_key = derive_session_key(key, salt)
+        aesgcm = AESGCM(session_key)
+        ciphertext = aesgcm.encrypt(nonce, payload_bytes, None)
+        return base64.b64encode(V2_MAGIC + salt + nonce + ciphertext).decode("ascii")
+    else:
+        aesgcm = AESGCM(key)
+        ciphertext = aesgcm.encrypt(nonce, payload_bytes, None)
+        return base64.b64encode(nonce + ciphertext).decode("ascii")
 
 
 def decrypt_payload(key: bytes | str, wire_b64: str) -> dict:
-    """Decrypt an AES-256-GCM base64 payload produced by encrypt_payload or WebCrypto."""
+    """Decrypt an AES-256-GCM base64 payload produced by encrypt_payload or WebCrypto.
+    Automatically handles V2 forward-secure payloads (with HKDF session key)
+    and V1 legacy payloads.
+    """
     if isinstance(key, str):
         key = bytes.fromhex(key) if len(key) == 64 else key.encode("utf-8")
     if len(key) != 32:
         raise ValueError(f"AES-256 key must be exactly 32 bytes (got {len(key)})")
 
     raw = base64.b64decode(wire_b64)
+    # Check for V2 format: magic 0x02 and length >= 1 + 16 + 12 + 16 (45 bytes)
+    if len(raw) >= 45 and raw[0:1] == V2_MAGIC:
+        salt = raw[1:17]
+        nonce = raw[17:29]
+        ciphertext = raw[29:]
+        session_key = derive_session_key(key, salt)
+        aesgcm = AESGCM(session_key)
+        decrypted_bytes = aesgcm.decrypt(nonce, ciphertext, None)
+        return json.loads(decrypted_bytes.decode("utf-8"))
+
+    # Legacy V1 format
     if len(raw) < 12 + 16:
         raise ValueError("Ciphertext too short for AES-GCM IV and tag")
 

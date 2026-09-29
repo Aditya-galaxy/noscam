@@ -41,10 +41,37 @@ const { token, relayChannel, relayKey } = (() => {
   };
 })();
 
-// Web Crypto AES-256-GCM functions for zero-cloud E2EE communication
+// Web Crypto AES-256-GCM functions for zero-cloud E2EE communication with Perfect Forward Secrecy
+async function deriveSessionKey(baseKeyBytes, saltBytes) {
+  const baseKey = await window.crypto.subtle.importKey(
+    "raw", baseKeyBytes, "HKDF", false, ["deriveKey"]
+  );
+  return window.crypto.subtle.deriveKey(
+    { name: "HKDF", hash: "SHA-256", salt: saltBytes, info: new TextEncoder().encode("noscam_hold_session") },
+    baseKey,
+    { name: "AES-GCM", length: 256 },
+    false,
+    ["encrypt", "decrypt"]
+  );
+}
+
 async function decryptRelayPayload(keyHex, base64Wire) {
   const keyBytes = new Uint8Array(keyHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
   const wireBytes = Uint8Array.from(atob(base64Wire), c => c.charCodeAt(0));
+
+  // Check for V2 format: magic 0x02 and length >= 1 + 16 + 12 + 16
+  if (wireBytes.length >= 45 && wireBytes[0] === 0x02) {
+    const salt = wireBytes.slice(1, 17);
+    const iv = wireBytes.slice(17, 29);
+    const data = wireBytes.slice(29);
+    const sessionKey = await deriveSessionKey(keyBytes, salt);
+    const decrypted = await window.crypto.subtle.decrypt(
+      { name: "AES-GCM", iv }, sessionKey, data
+    );
+    return JSON.parse(new TextDecoder().decode(decrypted));
+  }
+
+  // Legacy V1 format
   const iv = wireBytes.slice(0, 12);
   const data = wireBytes.slice(12);
 
@@ -59,19 +86,20 @@ async function decryptRelayPayload(keyHex, base64Wire) {
 
 async function encryptRelayPayload(keyHex, obj) {
   const keyBytes = new Uint8Array(keyHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+  const salt = window.crypto.getRandomValues(new Uint8Array(16));
   const iv = window.crypto.getRandomValues(new Uint8Array(12));
   const dataBytes = new TextEncoder().encode(JSON.stringify(obj));
 
-  const cryptoKey = await window.crypto.subtle.importKey(
-    "raw", keyBytes, "AES-GCM", false, ["encrypt"]
-  );
+  const sessionKey = await deriveSessionKey(keyBytes, salt);
   const encrypted = await window.crypto.subtle.encrypt(
-    { name: "AES-GCM", iv }, cryptoKey, dataBytes
+    { name: "AES-GCM", iv }, sessionKey, dataBytes
   );
 
-  const combined = new Uint8Array(12 + encrypted.byteLength);
-  combined.set(iv, 0);
-  combined.set(new Uint8Array(encrypted), 12);
+  const combined = new Uint8Array(1 + 16 + 12 + encrypted.byteLength);
+  combined[0] = 0x02; // V2 magic
+  combined.set(salt, 1);
+  combined.set(iv, 17);
+  combined.set(new Uint8Array(encrypted), 29);
 
   let binary = "";
   for (let i = 0; i < combined.byteLength; i++) {
