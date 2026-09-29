@@ -104,8 +104,8 @@ class DisarmedBrowserActivity : Activity() {
             ""
         }
 
-        val dnsCheck = DnsFilter.evaluateDomain(host)
-        if (dnsCheck.action == DnsFilter.Action.SINKHOLE) {
+        val dnsCheck = DnsFilter.assess(host)
+        if (dnsCheck.action == DnsAction.SINKHOLE) {
             renderBlockedScreen(rootLayout, dnsCheck.reason ?: "Suspicious or malicious destination")
             setContentView(rootLayout)
             return
@@ -132,8 +132,8 @@ class DisarmedBrowserActivity : Activity() {
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                 val nextUrl = request?.url?.toString() ?: return false
                 val nextHost = try { URI(nextUrl).host?.lowercase() ?: "" } catch (e: Exception) { "" }
-                val nextDnsCheck = DnsFilter.evaluateDomain(nextHost)
-                if (nextDnsCheck.action == DnsFilter.Action.SINKHOLE) {
+                val nextDnsCheck = DnsFilter.assess(nextHost)
+                if (nextDnsCheck.action == DnsAction.SINKHOLE) {
                     renderBlockedScreen(rootLayout, nextDnsCheck.reason ?: "Target domain is blocked")
                     return true
                 }
