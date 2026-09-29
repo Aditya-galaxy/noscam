@@ -248,6 +248,11 @@ class MainActivity : Activity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == REQUEST_ROLE) showLauncherDashboard()
+        if (requestCode == REQUEST_VPN && resultCode == RESULT_OK) {
+            val startIntent = Intent(this, NoScamDnsVpnService::class.java)
+            startService(startIntent)
+            showLauncherDashboard()
+        }
     }
 
     override fun onResume() {
@@ -328,6 +333,30 @@ class MainActivity : Activity() {
         }
         layout.addView(btnAudit)
 
+        val dnsActive = NoScamDnsVpnService.isRunning
+        val btnDns = Button(this).apply {
+            text = if (dnsActive) "DNS Guardian: ACTIVE (Tap to pause)" else "Enable Device-Wide DNS Guardian"
+            setBackgroundColor(if (dnsActive) Color.DKGRAY else Color.TRANSPARENT)
+            setTextColor(if (dnsActive) Color.WHITE else Color.BLACK)
+            setOnClickListener {
+                if (NoScamDnsVpnService.isRunning) {
+                    val stopIntent = Intent(this@MainActivity, NoScamDnsVpnService::class.java).apply {
+                        action = NoScamDnsVpnService.ACTION_STOP
+                    }
+                    startService(stopIntent)
+                    showLauncherDashboard()
+                } else {
+                    val vpnIntent = android.net.VpnService.prepare(this@MainActivity)
+                    if (vpnIntent != null) {
+                        startActivityForResult(vpnIntent, REQUEST_VPN)
+                    } else {
+                        onActivityResult(REQUEST_VPN, RESULT_OK, null)
+                    }
+                }
+            }
+        }
+        layout.addView(btnDns)
+
         val btnAbout = Button(this).apply {
             text = "How NoScam works"
             setBackgroundColor(Color.TRANSPARENT)
@@ -375,6 +404,7 @@ class MainActivity : Activity() {
     companion object {
         private const val REQUEST_ROLE = 1
         private const val REQUEST_NOTIFY = 2
+        private const val REQUEST_VPN = 3
         private val PREFERRED_BROWSERS = listOf(
             "com.android.chrome", "com.sec.android.app.sbrowser", "org.mozilla.firefox",
             "com.microsoft.emmx", "com.brave.browser", "com.opera.browser",

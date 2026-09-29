@@ -22,6 +22,16 @@ This native companion registers as a handler for `http` and `https` `VIEW` inten
 4. **No dangerous permissions**:
    - Does **not** request Accessibility Services or SMS reading permissions. This protects users from learning the dangerous habit of granting screen-reading privileges that malware exploits.
 
+### Device-wide DNS Guardian (`NoScamDnsVpnService`)
+
+For apps that do not respect browser intent delegation (such as embedded webviews inside messaging apps), NoScam provides a **local DNS-only loopback service**:
+- Uses Android's native `VpnService` to intercept UDP port 53 DNS queries *only*.
+- Normal web, banking, and application traffic is **not** routed through any VPN server; only DNS resolution runs through the local TUN interface.
+- Evaluates domains against `DnsFilter`:
+  - **Sinkholes (0.0.0.0)** lookalike brand domains (`sbi-kyc.xyz`, `paypal-verify.click`), punycode (`xn--`), raw numeric IPs, and remote-access software (`anydesk.com`, `teamviewer.com`).
+  - Forwards clean queries to upstream encrypted DNS (`1.1.1.1`).
+- Completely on-device and zero-knowledge: no browsing or DNS queries are ever logged to an external cloud.
+
 ### App files sent in chats
 
 Spy and bank-theft apps mostly arrive as **files** in a chat — "Posting
