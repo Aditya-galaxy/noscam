@@ -79,6 +79,26 @@ such as Amnesty's MVT, or a factory reset.
 The rules are in `AppRisk.kt`, plain Kotlin with unit tests
 (`./gradlew testDebugUnitTest`).
 
+### Disarmed Mobile Micro-Profiles (`DisarmedBrowserActivity`)
+
+Opening a link in the primary browser exposes existing authentication cookies, saved sessions, and a full V8/WebKit JIT engine to memory-corruption 1-click exploits (e.g. BLASTPASS, Pegasus lures):
+* **Hardened Sandbox**: Runs with JavaScript disabled by default (no JIT, no WASM, no prototype pollution) and DOM storage, indexedDB, and cache completely disabled.
+* **Zero Permissions**: Hardware permissions (camera, microphone, geolocation, device orientation) are denied unconditionally.
+* **Tracking Identifier Stripping**: Removes click IDs (`fbclid`, `gclid`, `msclkid`, `utm_*`) to defeat targeted device fingerprinting.
+* **DNS Pre-Validation**: Verifies destination against `DnsFilter` prior to network retrieval. Blocked destinations render a red quarantine interstitial.
+
+### MDM Profile & Temporal Privilege Sentry
+
+Monitors high-privilege device administrative authority:
+* **Rogue MDM Profiles**: Flags any sideloaded application that holds or requests `DevicePolicyManager` Device Owner or Profile Owner control outside a verified enterprise deployment.
+* **Temporal Post-Install Window**: Detects applications installed within the past 24 hours that immediately request takeover privileges (`BIND_ACCESSIBILITY_SERVICE`, `SYSTEM_ALERT_WINDOW`, `BIND_DEVICE_ADMIN`).
+
+### Anti-Deepfake / Anti-Vishing Mutual Challenge (`VishingDefense`)
+
+Defeats AI voice cloning, caller-ID spoofing, and executive impersonation scams:
+* **6-Digit Ephemeral Rolling SAS**: Both caller and recipient compute a synchronized 6-digit rolling code (120-second window) via HMAC-SHA256 over an enrolled seed.
+* **Verbal 3-Digit Challenge-Response**: Receiver prompts caller with a 3-digit challenge; caller's app calculates the cryptographic 3-digit response. An AI clone or imposter cannot produce the matching response without the secret seed.
+
 ### What it cannot do
 
 * **Block an install outright.** Only a device-owner (MDM) app can forbid

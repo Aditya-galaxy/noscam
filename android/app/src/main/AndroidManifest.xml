@@ -87,6 +87,11 @@
             android:exported="false"
             android:label="Apps to check" />
 
+        <activity
+            android:name=".DisarmedBrowserActivity"
+            android:exported="false"
+            android:label="NoScam Disarmed Preview" />
+
         <service
             android:name=".InstallWatcherJob"
             android:exported="false"

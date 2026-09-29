@@ -129,4 +129,28 @@ class AppRiskTest {
             .copy(declaresCardEmulation = true, isSystem = false))
         assertEquals(RiskLevel.NONE, result.level)
     }
+
+    @Test fun `a sideloaded app holding device owner authority is high risk`() {
+        val result = AppRisk.assess(app(installer = sideload).copy(isDeviceOwner = true))
+        assertEquals(RiskLevel.HIGH, result.level)
+        assertTrue(result.reasons.any { it.contains("Device Owner") })
+    }
+
+    @Test fun `a sideloaded app holding profile owner authority is high risk`() {
+        val result = AppRisk.assess(app(installer = sideload).copy(isProfileOwner = true))
+        assertEquals(RiskLevel.HIGH, result.level)
+        assertTrue(result.reasons.any { it.contains("Profile Owner") })
+    }
+
+    @Test fun `a sideloaded app installed in the last 24 hours declaring accessibility is high risk`() {
+        val now = 1700000000000L
+        val installedTwoHoursAgo = now - (2 * 3600 * 1000L)
+        val result = AppRisk.assess(
+            app(installer = sideload, initiator = "com.android.chrome")
+                .copy(declaresAccessibility = true, firstInstallTimeMs = installedTwoHoursAgo),
+            nowMs = now
+        )
+        assertEquals(RiskLevel.HIGH, result.level)
+        assertTrue(result.reasons.any { it.contains("last 24 hours") })
+    }
 }

@@ -37,6 +37,12 @@ data class AppFacts(
     val declaresCardEmulation: Boolean = false,
     /** Starts itself when the phone boots. */
     val startsAtBoot: Boolean = false,
+    /** Holds Device Owner authority (enterprise MDM or rogue root profile). */
+    val isDeviceOwner: Boolean = false,
+    /** Holds Profile Owner authority (work profile MDM). */
+    val isProfileOwner: Boolean = false,
+    /** Epoch timestamp (ms) when app was first installed, or 0 if unknown. */
+    val firstInstallTimeMs: Long = 0L,
 )
 
 enum class RiskLevel { NONE, WATCH, HIGH }
@@ -157,7 +163,7 @@ object AppRisk {
     fun sourceName(pkg: String?): String? =
         pkg?.let { MESSENGERS[it] ?: BROWSERS[it] }
 
-    fun assess(app: AppFacts): Assessment {
+    fun assess(app: AppFacts, nowMs: Long = System.currentTimeMillis()): Assessment {
         if (app.isSystem) return Assessment(RiskLevel.NONE, false, null, emptyList())
 
         val sideloaded = isSideloaded(app)
@@ -170,6 +176,12 @@ object AppRisk {
         REMOTE_ACCESS[app.packageName]?.let {
             reasons += "is $it: anyone you give its code to can see and control this phone"
             takeover = true
+        }
+        if (app.isDeviceOwner || app.isProfileOwner) {
+            if (sideloaded) {
+                reasons += "holds enterprise Device Owner or Profile Owner authority, but was not installed by a verified enterprise store"
+                takeover = true
+            }
         }
         if (app.activeAccessibility) {
             reasons += "is switched on as an accessibility service: it can read everything on screen and press buttons for you"
@@ -197,6 +209,13 @@ object AppRisk {
         }
         if (app.declaresCardEmulation && sideloaded) {
             reasons += "can pretend to be a contactless bank card — the \"tap your card on your phone\" theft"
+            takeover = true
+        }
+
+        // Temporal window: sideloaded apps requesting takeover capabilities immediately post-install
+        val isRecent = app.firstInstallTimeMs > 0 && (nowMs - app.firstInstallTimeMs) in 0..(24 * 60 * 60 * 1000L)
+        if (sideloaded && isRecent && (app.declaresAccessibility || app.declaresDeviceAdmin || app.grantedPermissions.any { it in TAKEOVER_PERMISSIONS })) {
+            reasons += "was installed within the last 24 hours and holds high-privilege access"
             takeover = true
         }
 

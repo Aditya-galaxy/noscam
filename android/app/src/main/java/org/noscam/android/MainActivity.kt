@@ -189,6 +189,20 @@ class MainActivity : Activity() {
         }
         layout.addView(btnCancel)
 
+        val btnDisarmed = Button(this).apply {
+            text = "🛡️ Open Disarmed (Safe Preview)"
+            setBackgroundColor(Color.DKGRAY)
+            setTextColor(Color.WHITE)
+            setOnClickListener {
+                val disarmedIntent = Intent(this@MainActivity, DisarmedBrowserActivity::class.java).apply {
+                    putExtra(DisarmedBrowserActivity.EXTRA_URL, url)
+                }
+                startActivity(disarmedIntent)
+                finish()
+            }
+        }
+        layout.addView(btnDisarmed)
+
         val btnOpen = Button(this).apply {
             text = "Open Anyway"
             setBackgroundColor(Color.TRANSPARENT)
@@ -357,6 +371,14 @@ class MainActivity : Activity() {
         }
         layout.addView(btnDns)
 
+        val btnVishing = Button(this).apply {
+            text = "Verify Caller (Anti-Deepfake Vishing)"
+            setBackgroundColor(Color.TRANSPARENT)
+            setTextColor(Color.BLACK)
+            setOnClickListener { showVishingVerificationDialog() }
+        }
+        layout.addView(btnVishing)
+
         val btnAbout = Button(this).apply {
             text = "How NoScam works"
             setBackgroundColor(Color.TRANSPARENT)
@@ -366,6 +388,87 @@ class MainActivity : Activity() {
         layout.addView(btnAbout)
 
         setContentView(layout)
+    }
+
+    private fun showVishingVerificationDialog() {
+        val prefs = getSharedPreferences("vishing_defense", MODE_PRIVATE)
+        var seedHex = prefs.getString("seed_hex", null)
+        if (seedHex == null) {
+            seedHex = VishingDefense.generateRandomSeedHex()
+            prefs.edit().putString("seed_hex", seedHex).apply()
+        }
+        val secret = VishingDefense.hexToBytes(seedHex)
+        val code = VishingDefense.generateTimeCode(secret)
+
+        val root = ScrollView(this).apply {
+            setBackgroundColor(Color.WHITE)
+            isFillViewport = true
+            fitsSystemWindows = true
+        }
+        val layout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(48, 80, 48, 64)
+        }
+
+        val tag = TextView(this).apply {
+            text = "NoScam · Anti-Vishing Sentry"
+            textSize = 13f
+            setTextColor(Color.DKGRAY)
+        }
+        layout.addView(tag)
+
+        val title = TextView(this).apply {
+            text = "Verify Caller Identity"
+            textSize = 22f
+            setTypeface(null, Typeface.BOLD)
+            setTextColor(Color.BLACK)
+            setPadding(0, 16, 0, 16)
+        }
+        layout.addView(title)
+
+        val desc = TextView(this).apply {
+            text = "Scammers and AI voice clones can fake a family member's voice, executive authority, or caller ID. They cannot fake this ephemeral cryptographic code."
+            textSize = 14f
+            setTextColor(Color.DKGRAY)
+            setPadding(0, 0, 0, 24)
+        }
+        layout.addView(desc)
+
+        val codeLabel = TextView(this).apply {
+            text = "Current Rolling Code (120s window):"
+            textSize = 13f
+            setTextColor(Color.GRAY)
+        }
+        layout.addView(codeLabel)
+
+        val codeDisplay = TextView(this).apply {
+            text = code
+            textSize = 32f
+            setTypeface(Typeface.MONOSPACE, Typeface.BOLD)
+            setTextColor(Color.BLACK)
+            gravity = Gravity.CENTER
+            setPadding(0, 16, 0, 24)
+        }
+        layout.addView(codeDisplay)
+
+        val rule = TextView(this).apply {
+            text = "• Both you and the other party should see this identical code in NoScam.\n• If the caller claims to be your bank, police, or employer and cannot confirm this code, HANG UP IMMEDIATELY."
+            textSize = 14f
+            setTextColor(Color.parseColor("#C62828"))
+            setPadding(0, 0, 0, 32)
+        }
+        layout.addView(rule)
+
+        val btnClose = Button(this).apply {
+            text = "Done"
+            setBackgroundColor(Color.BLACK)
+            setTextColor(Color.WHITE)
+            setOnClickListener { showLauncherDashboard() }
+        }
+        layout.addView(btnClose)
+
+        root.addView(layout)
+        setContentView(root)
     }
 
     /** Hand a link to a real browser — never back to ourselves. Once NoScam is

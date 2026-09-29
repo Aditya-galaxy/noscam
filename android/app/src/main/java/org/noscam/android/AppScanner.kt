@@ -94,6 +94,10 @@ class AppScanner(private val context: Context) {
         val receivers = info.receivers ?: emptyArray()
         val (installer, initiator) = installSource(info.packageName)
 
+        val dpm = context.getSystemService(DevicePolicyManager::class.java)
+        val isDeviceOwner = dpm?.isDeviceOwnerApp(info.packageName) == true
+        val isProfileOwner = dpm?.isProfileOwnerApp(info.packageName) == true
+
         return AppFacts(
             packageName = info.packageName,
             label = app.loadLabel(pm).toString(),
@@ -122,6 +126,9 @@ class AppScanner(private val context: Context) {
                 it.permission == "android.permission.BIND_NFC_SERVICE"
             },
             startsAtBoot = "android.permission.RECEIVE_BOOT_COMPLETED" in requested,
+            isDeviceOwner = isDeviceOwner,
+            isProfileOwner = isProfileOwner,
+            firstInstallTimeMs = info.firstInstallTime,
         )
     }
 
