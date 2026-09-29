@@ -117,8 +117,76 @@
       }
     });
 
+  // Declarative Gateway Adapters for top banking portals and payment checkouts
+  const GATEWAY_ADAPTERS = [
+    {
+      name: "sbi_netbanking",
+      host: /onlinesbi\.(sbi|com)/i,
+      amountSelector: "#lblAmount, .txn_amount, td[id*='amount']",
+      payeeSelector: "#lblBeneficiary, .bene_name, td[id*='beneficiary']",
+    },
+    {
+      name: "hdfc_netbanking",
+      host: /netbanking\.hdfcbank\.com/i,
+      amountSelector: "#fldTxnAmt, .amt-display, span[id*='Amount']",
+      payeeSelector: "#fldBeneficiaryName, span[id*='Beneficiary']",
+    },
+    {
+      name: "icici_netbanking",
+      host: /infinity\.icicibank\.com/i,
+      amountSelector: "#AMOUNT, .amount-value, span[id*='txnAmount']",
+      payeeSelector: "#PAYEE_NAME, .payee-details",
+    },
+    {
+      name: "razorpay_checkout",
+      host: /checkout\.razorpay\.com/i,
+      amountSelector: "[data-testid='amount-display'], .amount, .order-amount",
+      payeeSelector: "[data-testid='merchant-name'], .merchant-name",
+    },
+    {
+      name: "cashfree_checkout",
+      host: /cashfree\.com/i,
+      amountSelector: ".order-amount, .cf-amount, [data-testid='order-amt']",
+      payeeSelector: ".merchant-title, .cf-merchant-name",
+    },
+    {
+      name: "paypal_checkout",
+      host: /paypal\.com/i,
+      amountSelector: "[data-testid='total-amount'], .paypal-amount, #header-amount",
+      payeeSelector: "[data-testid='recipient-name'], .recipient-name",
+    },
+    {
+      name: "chase_bank",
+      host: /chase\.com/i,
+      amountSelector: "#transAmount, .transaction-amount, [data-testid='trans-amt']",
+      payeeSelector: "#recipientName, [data-testid='payee-name']",
+    },
+    {
+      name: "wells_fargo",
+      host: /wellsfargo\.com/i,
+      amountSelector: "#transferAmount, .review-amount, span[id*='amountReview']",
+      payeeSelector: "#toAccountName, span[id*='toAccountReview']",
+    },
+  ];
+
+  const deepQuerySelectorAll = (root, selector) => {
+    const results = [];
+    if (!root || !root.querySelectorAll) return results;
+    try {
+      results.push(...root.querySelectorAll(selector));
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
+      let node;
+      while ((node = walker.nextNode())) {
+        if (node.shadowRoot) {
+          results.push(...deepQuerySelectorAll(node.shadowRoot, selector));
+        }
+      }
+    } catch {}
+    return results;
+  };
+
   const fieldValue = (scope, pattern) => {
-    const fields = [...scope.querySelectorAll("input, select")];
+    const fields = deepQuerySelectorAll(scope, "input, select");
     const match = fields.find((field) =>
       pattern.test(`${field.name} ${field.id} ${field.placeholder || ""}`));
     return match ? String(match.value || "").trim() : "";
@@ -445,28 +513,60 @@
                      || button.getAttribute("title") || "");
       const form = button.closest("form");
       const scope = form || document;
-      const hasAmountInput = [...scope.querySelectorAll("input")].some((input) =>
+      const hasAmountInput = deepQuerySelectorAll(scope, "input").some((input) =>
         AMOUNT.test(`${input.name} ${input.id} ${input.placeholder || ""}`) ||
         input.type === "number");
       const hasAmountInButton = CURRENCY_AMOUNT.test(label);
-      const hasAmount = hasAmountInput || hasAmountInButton;
+
+      // Gateway adapters & summary confirmation screen support
+      const activeAdapter = GATEWAY_ADAPTERS.find((a) => a.host.test(location.host));
+      let adapterAmount = "";
+      let adapterPayee = "";
+      if (activeAdapter) {
+        if (activeAdapter.amountSelector) {
+          const el = scope.querySelector(activeAdapter.amountSelector);
+          if (el) adapterAmount = (el.value || el.innerText || el.textContent || "").replace(/[^\d.]/g, "");
+        }
+        if (activeAdapter.payeeSelector) {
+          const el = scope.querySelector(activeAdapter.payeeSelector);
+          if (el) adapterPayee = (el.value || el.innerText || el.textContent || "").trim();
+        }
+      }
+
+      const hasConfirmationAmount = Boolean(adapterAmount) ||
+        (PAY_WORDS.test(label) && [...scope.querySelectorAll("span, div, td, b")].some((el) =>
+          el.children.length === 0 &&
+          /amount|total|debit|transfer/i.test(`${el.className} ${el.id}`) &&
+          CURRENCY_AMOUNT.test(el.innerText || el.textContent || "")));
+
+      const hasAmount = hasAmountInput || hasAmountInButton || hasConfirmationAmount;
       if (!hasAmount) return;             // a "continue" button on an article is not a payment
 
       // The label is the usual signal, but plenty of real payment buttons are an
       // icon with no text at all. A submit button inside a form that takes an
       // amount is a payment button whatever it says, or doesn't.
       const submits = button.type === "submit" || button.tagName === "BUTTON" && form;
-      if (!PAY_WORDS.test(label) && !(submits && !label.trim()) && !hasAmountInButton) return;
+      if (!PAY_WORDS.test(label) && !(submits && !label.trim()) && !hasAmountInButton && !hasConfirmationAmount) return;
 
       event.preventDefault();
       event.stopImmediatePropagation();
 
-      let rawAmount = fieldValue(scope, AMOUNT).replace(/[^\d.]/g, "");
+      let rawAmount = adapterAmount || fieldValue(scope, AMOUNT).replace(/[^\d.]/g, "");
       if (!rawAmount && hasAmountInButton) {
         const match = label.match(/[\$£€₹¥]\s*([\d,]+(\.\d+)?)|([\d,]+(\.\d+)?)\s*(usd|inr|eur|gbp|cad|aud)/i);
         if (match) rawAmount = (match[1] || match[3] || "").replace(/,/g, "");
       }
-      const payee = fieldValue(scope, PAYEE);
+      if (!rawAmount && hasConfirmationAmount) {
+        const amountEl = [...scope.querySelectorAll("span, div, td, b")].find((el) =>
+          el.children.length === 0 &&
+          /amount|total|debit|transfer/i.test(`${el.className} ${el.id}`) &&
+          CURRENCY_AMOUNT.test(el.innerText || el.textContent || ""));
+        if (amountEl) {
+          const m = (amountEl.innerText || amountEl.textContent || "").match(CURRENCY_AMOUNT);
+          if (m) rawAmount = m[0].replace(/[^\d.]/g, "");
+        }
+      }
+      const payee = adapterPayee || fieldValue(scope, PAYEE);
       const page = (scope.innerText || "") + " " + document.title;
       let kind = "payment";
       if (CRYPTO_ADDRESS.test(payee) || CRYPTO_ADDRESS.test(page)) kind = "crypto_transfer";

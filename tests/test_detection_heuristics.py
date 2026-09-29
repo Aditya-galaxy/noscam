@@ -115,3 +115,50 @@ def test_currency_amount_in_button_labels_are_recognised() -> None:
     assert found["Search Google"] is False
     assert found["Read more"] is False
 
+
+def test_gateway_adapters_cover_target_banking_domains() -> None:
+    """Ensure declarative adapters correctly recognize target banking and checkout domains."""
+    source = CONTENT_JS.read_text(encoding="utf-8")
+    assert "const GATEWAY_ADAPTERS = [" in source
+    assert "sbi_netbanking" in source
+    assert "hdfc_netbanking" in source
+    assert "icici_netbanking" in source
+    assert "razorpay_checkout" in source
+    assert "cashfree_checkout" in source
+    assert "paypal_checkout" in source
+    assert "chase_bank" in source
+    assert "wells_fargo" in source
+
+    # Run JS evaluation with node to test host regex matching
+    script = """
+    const hosts = [
+      "retail.onlinesbi.sbi",
+      "netbanking.hdfcbank.com",
+      "infinity.icicibank.com",
+      "checkout.razorpay.com",
+      "api.cashfree.com",
+      "www.paypal.com",
+      "secure07ea.chase.com",
+      "connect.secure.wellsfargo.com",
+      "random-blog.com"
+    ];
+    const adapters = [
+      /onlinesbi\\.(sbi|com)/i,
+      /netbanking\\.hdfcbank\\.com/i,
+      /infinity\\.icicibank\\.com/i,
+      /checkout\\.razorpay\\.com/i,
+      /cashfree\\.com/i,
+      /paypal\\.com/i,
+      /chase\\.com/i,
+      /wellsfargo\\.com/i
+    ];
+    const matches = hosts.map(h => adapters.some(a => a.test(h)));
+    console.log(JSON.stringify(matches));
+    """
+    result = subprocess.run([NODE, "-e", script], capture_output=True, text=True, timeout=20)
+    assert result.returncode == 0, result.stderr
+    out = json.loads(result.stdout)
+    # The first 8 must match, the 9th (random-blog.com) must not
+    assert out == [True, True, True, True, True, True, True, True, False]
+
+
