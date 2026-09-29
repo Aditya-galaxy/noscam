@@ -39,6 +39,33 @@ enforced by software, on the one device the caller cannot reach.
 
 ---
 
+## The architectural standpoint
+
+Every conventional anti-fraud extension asks: *"Is this domain, page or file known to be malicious?"* That question is one disposable domain away from failure.
+
+NoScam enforces a deterministic invariant: **An instruction arriving through an untrusted communication channel cannot authorise an irreversible action.**
+
+```mermaid
+flowchart TD
+    subgraph Traditional["Conventional Anti-Fraud / Antivirus"]
+        T1["Incoming Message with Link"] --> T2["User Opens Link"]
+        T2 --> T3{"Reputation & AI Classifier<br/><i>'Is this URL or file known bad?'</i>"}
+        T3 -->|Known Bad Domain| T4["Blocked"]
+        T3 -->|Fresh Domain / Zero-Day / Legitimate App| T5["Allowed ⚠️<br/><i>(Loss occurs)</i>"]
+    end
+
+    subgraph NoScamParadigm["NoScam Invariant Model"]
+        N1["Incoming Message with Link"] -->|15-minute Taint Window| N2["Origin Recorded"]
+        N2 --> N3["User Initiates Irreversible Action<br/><i>(Transfer, OTP, Install, Mandate)</i>"]
+        N3 --> N4{"Deterministic Invariant Check<br/><i>'Did this action originate from a message?'</i>"}
+        N4 -->|Yes: From Message| N5["Gated / Held for Physical Approval"]
+        N4 -->|No: Typed Directly & Within Limits| N6["Allowed Directly"]
+        N5 --> N7["Out-of-Band Physical Authority<br/><i>(Separated Second Device / Peer)</i>"]
+    end
+```
+
+---
+
 ## What it does
 
 | | |
@@ -124,6 +151,31 @@ flowchart LR
     H --> S["second device<br/>says yes"] --> A
     G -.->|"reason codes only"| L["model writes<br/>one line of advice"]
     L -.->|"cannot change<br/>the decision"| H
+```
+
+### Out-of-band authority without a cloud honeypot
+
+```mermaid
+flowchart LR
+    subgraph DesktopMachine["Protected Machine (Desktop / Laptop)"]
+        BrowserExt["Browser Extension<br/><i>(Captures clicks, iframes, downloads)</i>"]
+        LocalService["Local Service Engine<br/><i>(127.0.0.1:8787 · State & Audit Log)</i>"]
+        BrowserExt -->|Loopback JSON| LocalService
+    end
+
+    subgraph ZeroKnowledgeRelay["Stateless E2EE Blind Relay"]
+        Relay["Encrypted Pub/Sub<br/><i>(AES-256-GCM Ciphertext Only)</i>"]
+    end
+
+    subgraph GuardianDevice["Out-of-Band Authority (Phone)"]
+        PhoneApp["Guardian WebApp / Companion<br/><i>(WebCrypto Decryption & Approval)</i>"]
+    end
+
+    LocalService -->|Push Encrypted Hold| Relay
+    Relay -->|Receive Encrypted Alert| PhoneApp
+    PhoneApp -->|Sign Verdict Approve / Deny| Relay
+    Relay -->|Push Encrypted Verdict| LocalService
+    LocalService -->|Release Action| BrowserExt
 ```
 
 Everything the gate decides is written to a hash-chained log, so "what actually
@@ -229,6 +281,40 @@ name and hostname are the attacker's own text, so they reach the model
 truncated, flattened to one line and labelled UNTRUSTED; the reply is rejected
 if it contains a link, markup, or if the model stopped early. A successful
 prompt injection can change the wording of one sentence of advice. That is all.
+
+## Personnel cyber defence: Mobile spyware & social engineering
+
+When extended from consumer households to **corporate executives, government officials, defense contractors, and high-risk personnel**, the threat model escalates from consumer fraud to **state-sponsored spyware (Pegasus, Predator, Hermit)** and **targeted spearphishing, CEO fraud, and AI voice cloning (vishing)**.
+
+```mermaid
+flowchart TD
+    subgraph InboundThreats["Targeted Inbound Attack Vectors"]
+        V1["Spearphishing Link<br/><i>(SMS, Signal, WhatsApp)</i>"]
+        V2["AI Voice Clone / Vishing<br/><i>(CEO Fraud, Emergency Wire)</i>"]
+        V3["Deceptive App / Sideload<br/><i>(Fake Corporate Update)</i>"]
+    end
+
+    subgraph PersonnelGuardian["NoScam Personnel Guardian"]
+        G1["Disarmed Isolated Micro-Profile<br/><i>(Disables JIT, WASM, WebGL)</i>"]
+        G2["Anti-Deepfake Mutual Handshake<br/><i>(Out-of-band cryptographic challenge)</i>"]
+        G3["Invasive Permission Sentry<br/><i>(Blocks Accessibility & MDM abuse)</i>"]
+    end
+
+    subgraph DefenseExecution["Enforced Security Outcome"]
+        E1["Neutralizes 1-Click Spyware Exploits<br/><i>(WebKit & Media zero-days)</i>"]
+        E2["Four-Eyes Dual-Custody Approval<br/><i>(Treasury & Admin actions require peer sign-off)</i>"]
+        E3["Freezes Surveillance Backdoors<br/><i>(Stops mobile RAT keystroke extraction)</i>"]
+    end
+
+    V1 --> G1 --> E1
+    V2 --> G2 --> E2
+    V3 --> G3 --> E3
+```
+
+- **Disarmed Micro-Profiles**: Inbound links from messaging apps are opened with JIT, WebAssembly, and complex media codecs disabled, structurally neutralizing 1-click browser zero-days before memory corruption can occur.
+- **The "Four-Eyes" Dual-Custody Gateway**: High-consequence operations (treasury wire transfers, credential resets, enterprise profile additions) require an out-of-band cryptographic approval from a designated peer or Security Operations Center (SOC).
+- **Anti-Vishing Mutual Challenge**: Voice-cloned emergency phone calls cannot authorize action; an out-of-band cryptographic handshake is required between verified devices.
+- **Invasive Permission Sentry**: Continuous monitoring of `AccessibilityManager` and `DevicePolicyManager` halts execution if accessibility or device-admin rights are requested within 60 minutes of a download or message arrival.
 
 ## Limits
 
