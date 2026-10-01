@@ -144,7 +144,7 @@ def assert_public_target(url: str) -> None:
         raise UnsafeTarget(f"that address does not resolve ({exc.strerror or 'DNS failure'})")
     for info in infos:
         ip = ipaddress.ip_address(info[4][0])
-        if (ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved
+        if (not ip.is_global or ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved
                 or ip.is_multicast or ip.is_unspecified):
             raise UnsafeTarget("that address points inside a private network")
 
@@ -319,7 +319,7 @@ def check_upi(raw: str) -> LinkVerdict:
     from urllib.parse import parse_qs, urlparse
 
     parsed = urlparse(raw.strip())
-    params = {k: v[0] for k, v in parse_qs(parsed.query).items() if v}
+    params = {k.lower(): v[0] for k, v in parse_qs(parsed.query).items() if v}
     payee = params.get("pa", "")
     name = params.get("pn", "")
     amount = params.get("am", "").strip()

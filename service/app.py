@@ -336,7 +336,7 @@ def gate_check(payload: CheckIn) -> DecisionOut:
             store.update(lambda s: s.holds.__setitem__(hold.id, hold))
             if hold.approvable:
                 relay_client.publish_hold(hold.summary(now))
-    elif action.type.is_payment and action.amount:
+    elif (action.type.is_payment or action.type is ActionType.UPI_COLLECT_APPROVAL) and action.amount:
         # It went through, so it counts against today, and this payee is now one
         # the household has paid before.
         store.add_spend(action.amount, now)

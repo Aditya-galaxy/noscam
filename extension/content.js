@@ -28,6 +28,13 @@
       if (!event.data || event.data.noscam !== true) return;
       if (event.data.kind === "noscam:child_hold") {
         const { requestId, decision } = event.data;
+        try {
+          event.source.postMessage({
+            noscam: true,
+            kind: "noscam:child_ack",
+            requestId,
+          }, "*");
+        } catch {}
         showOverlay(decision, {
           onContinue: () => {
             try {
@@ -414,17 +421,23 @@
     // so it is not cramped or clipped inside a small checkout widget.
     if (typeof window !== "undefined" && window !== window.top) {
       const requestId = "req_" + Math.random().toString(36).slice(2);
-      let resumed = false;
+      let acknowledged = false;
+      let fallbackTimer = null;
 
-      const onResume = (event) => {
+      const onMessage = (event) => {
         if (!event.data || event.data.noscam !== true) return;
-        if (event.data.kind === "noscam:child_resume" && event.data.requestId === requestId) {
-          resumed = true;
-          window.removeEventListener("message", onResume);
-          proceed();
+        if (event.data.requestId === requestId) {
+          if (event.data.kind === "noscam:child_ack") {
+            acknowledged = true;
+            clearTimeout(fallbackTimer);
+          } else if (event.data.kind === "noscam:child_resume") {
+            window.removeEventListener("message", onMessage);
+            clearTimeout(fallbackTimer);
+            proceed();
+          }
         }
       };
-      window.addEventListener("message", onResume);
+      window.addEventListener("message", onMessage);
 
       try {
         window.top.postMessage({
@@ -434,15 +447,17 @@
           decision,
         }, "*");
 
-        // Fallback: If top window does not respond (e.g. strict sandbox), show locally after 1s
-        setTimeout(() => {
-          if (!resumed) {
+        // Fallback: If top window does not acknowledge (e.g. strict sandbox), show locally after 800ms
+        fallbackTimer = setTimeout(() => {
+          if (!acknowledged) {
+            window.removeEventListener("message", onMessage);
             showOverlay(decision, { onContinue: proceed });
           }
-        }, 1200);
+        }, 800);
         return;
       } catch {
         // window.top postMessage failed, fall back to local overlay
+        window.removeEventListener("message", onMessage);
       }
     }
 

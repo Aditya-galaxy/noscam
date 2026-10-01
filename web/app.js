@@ -12,7 +12,7 @@
 // The token arrives once, in the link the phone opens, and is kept from then on.
 // It is what distinguishes this household's phone from everything else on the
 // same Wi-Fi, which the browser cannot tell apart on its own.
-const { token, relayChannel, relayKey } = (() => {
+const { token, relayChannel, relayKey, relayServer } = (() => {
   const params = new URLSearchParams(location.search);
   // The relay key arrives in the fragment, which is never sent to any server.
   // Older pairing links put it in the query; both still work.
@@ -20,7 +20,11 @@ const { token, relayChannel, relayKey } = (() => {
   const fromLink = params.get("t");
   const r = fragment.get("r") || params.get("r");
   const k = fragment.get("k") || params.get("k");
+  const s = fragment.get("s") || params.get("s");
 
+  if (s) {
+    try { localStorage.setItem("noscam:relay_server", s); } catch {}
+  }
   if (r && k) {
     try {
       localStorage.setItem("noscam:relay_channel", r);
@@ -30,7 +34,7 @@ const { token, relayChannel, relayKey } = (() => {
   if (fromLink) {
     try { localStorage.setItem("noscam:token", fromLink); } catch {}
   }
-  if (r || k || fromLink) {
+  if (r || k || fromLink || s) {
     history.replaceState(null, "", location.pathname); // keep secrets out of the address bar
   }
 
@@ -38,6 +42,7 @@ const { token, relayChannel, relayKey } = (() => {
     token: fromLink || (localStorage.getItem("noscam:token") || ""),
     relayChannel: r || (localStorage.getItem("noscam:relay_channel") || ""),
     relayKey: k || (localStorage.getItem("noscam:relay_key") || ""),
+    relayServer: s || (localStorage.getItem("noscam:relay_server") || "https://ntfy.sh"),
   };
 })();
 
@@ -117,7 +122,7 @@ async function sendRemoteVerdict(holdId, verdict) {
       timestamp: Date.now(),
     };
     const ciphertext = await encryptRelayPayload(relayKey, payload);
-    const resp = await fetch(`https://ntfy.sh/noscam_reply_${relayChannel}`, {
+    const resp = await fetch(`${relayServer}/noscam_reply_${relayChannel}`, {
       method: "POST",
       body: ciphertext,
     });
@@ -131,7 +136,7 @@ const remoteHolds = new Map();
 
 if (relayChannel && relayKey && typeof EventSource !== "undefined") {
   try {
-    const sse = new EventSource(`https://ntfy.sh/noscam_hold_${relayChannel}/sse`);
+    const sse = new EventSource(`${relayServer}/noscam_hold_${relayChannel}/sse`);
     sse.onmessage = async (e) => {
       try {
         const msg = JSON.parse(e.data);

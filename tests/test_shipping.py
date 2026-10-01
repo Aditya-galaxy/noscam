@@ -54,6 +54,14 @@ def test_the_key_travels_in_the_fragment(tmp_path) -> None:
     assert "#r=" in url and "?k=" not in url and "?r=" not in url
 
 
+def test_custom_relay_url_travels_in_fragment_when_configured(tmp_path) -> None:
+    custom_url = "https://relay.enterprise.internal"
+    mgr = PairingManager(str(tmp_path), relay_url=custom_url)
+    url = mgr.pairing_url()
+    assert f"&s={custom_url}" in url
+    assert "?s=" not in url
+
+
 def test_relay_lines_apply_only_real_messages(tmp_path) -> None:
     seen = []
     mgr = PairingManager(str(tmp_path))

@@ -98,8 +98,9 @@ def decrypt_payload(key: bytes | str, wire_b64: str) -> dict:
 class PairingManager:
     """Manages persistent cryptographic pairing credentials for the household."""
 
-    def __init__(self, data_dir: str):
+    def __init__(self, data_dir: str, relay_url: str = DEFAULT_RELAY_URL):
         self.data_dir = data_dir
+        self.relay_url = relay_url.rstrip("/")
         self.path = os.path.join(data_dir, "pairing.json")
         self._lock = threading.Lock()
 
@@ -150,7 +151,8 @@ class PairingManager:
         # server, so it cannot end up in an access log or a proxy.
         creds = self.get_credentials()
         prefix = base_url.rstrip("/") if base_url else ""
-        return f"{prefix}/app/#r={creds['channel_id']}&k={creds['shared_key']}"
+        server_param = f"&s={self.relay_url}" if self.relay_url != "https://ntfy.sh" else ""
+        return f"{prefix}/app/#r={creds['channel_id']}&k={creds['shared_key']}{server_param}"
 
 
 class RelayClient:

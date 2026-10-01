@@ -222,7 +222,7 @@ def decide(
     #    code on a page a message sent you to, gift cards, an identity document
     #    — are not requests awaiting permission, and a guardian being pressured
     #    on their own phone is simply the next move in the same script.
-    if approved and (action.type.is_payment or action.type is ActionType.CRYPTO_TRANSFER):
+    if approved and (action.type.is_payment or (not tainted and action.type in (ActionType.CRYPTO_TRANSFER, ActionType.UPI_COLLECT_APPROVAL, ActionType.UPI_MANDATE_APPROVAL))):
         return Decision(
             disposition=Disposition.ALLOW,
             reason_code="approved_out_of_band",

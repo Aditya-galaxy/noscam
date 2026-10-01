@@ -183,6 +183,38 @@ def test_an_out_of_band_approval_releases_the_payment() -> None:
     assert "Priya" in decision.detail
 
 
+def test_an_out_of_band_approval_releases_clean_upi_collect_and_mandate() -> None:
+    decision_collect = decide(
+        Action(type=ActionType.UPI_COLLECT_APPROVAL, amount=120, payee="teashop@upi"),
+        typed_myself(), LIMITS, now=NOW, approved=True,
+    )
+    assert decision_collect.disposition is Disposition.ALLOW
+    assert decision_collect.reason_code == "approved_out_of_band"
+
+    decision_mandate = decide(
+        Action(type=ActionType.UPI_MANDATE_APPROVAL, amount=499, recurrence="monthly", payee="netflix@upi"),
+        typed_myself(), LIMITS, now=NOW, approved=True,
+    )
+    assert decision_mandate.disposition is Disposition.ALLOW
+    assert decision_mandate.reason_code == "approved_out_of_band"
+
+
+def test_an_approval_cannot_unlock_tainted_upi_collect_or_mandate() -> None:
+    decision_collect = decide(
+        Action(type=ActionType.UPI_COLLECT_APPROVAL, amount=5_000, payee="refund@upi"),
+        from_message(), LIMITS, now=NOW, approved=True,
+    )
+    assert decision_collect.disposition is Disposition.BLOCKED
+    assert decision_collect.reason_code == "upi_collect_after_message"
+
+    decision_mandate = decide(
+        Action(type=ActionType.UPI_MANDATE_APPROVAL, amount=100, recurrence="daily", payee="prize@upi"),
+        from_message(), LIMITS, now=NOW, approved=True,
+    )
+    assert decision_mandate.disposition is Disposition.BLOCKED
+    assert decision_mandate.reason_code == "mandate_after_message"
+
+
 def test_an_approval_cannot_unlock_remote_access() -> None:
     """The hard block sits above approvals on purpose: a guardian pressured on
     their own phone is exactly the next step in the script."""

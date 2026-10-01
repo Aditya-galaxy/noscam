@@ -111,11 +111,14 @@ class MainActivity : Activity() {
             }
 
             // 5. UPI collect request link
-            if (urlString.startsWith("upi:") || urlString.contains("upi://")) {
-                val hasBlankAmount = !urlString.contains("am=") || urlString.contains("am=&") || urlString.endsWith("am=") || urlString.contains("am=0")
+            val isUpi = urlString.startsWith("upi:", ignoreCase = true) || urlString.contains("upi://", ignoreCase = true)
+            if (isUpi) {
+                val lowerUrl = urlString.lowercase()
+                val hasBlankAmount = !lowerUrl.contains("am=") || lowerUrl.contains("am=&") || lowerUrl.endsWith("am=") ||
+                    lowerUrl.contains("am=0&") || lowerUrl.endsWith("am=0") || lowerUrl.contains("am=0.00")
                 if (hasBlankAmount) {
                     warnings.add("UPI request leaves the amount blank or asks for approval — approving UPI requests only sends money out, never receives it.")
-                } else if (urlString.contains("tr=") || urlString.contains("mode=02") || urlString.contains("recur=")) {
+                } else if (lowerUrl.contains("tr=") || lowerUrl.contains("mode=02") || lowerUrl.contains("recur=")) {
                     warnings.add("UPI request asks for your approval or recurring mandate — receiving money never requires your PIN.")
                 }
             }

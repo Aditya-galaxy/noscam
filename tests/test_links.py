@@ -81,6 +81,7 @@ def test_links_without_a_scheme_are_understood() -> None:
     "http://localhost/admin",
     "http://169.254.169.254/latest/meta-data/",       # cloud credentials endpoint
     "http://10.0.0.5/router",
+    "http://100.64.0.1/internal",                     # Carrier-Grade NAT / cellular private
     "http://[::1]/",
 ])
 def test_the_checker_refuses_to_reach_inside_the_network(url: str) -> None:
@@ -138,3 +139,10 @@ def test_an_ordinary_upi_payment_is_not_called_dangerous() -> None:
     """Paying someone on UPI is ordinary life; only a blank amount or a payee
     who isn't who they claim raises it."""
     assert check_url("upi://pay?pa=plumber@oksbi&pn=Plumber&am=2200").verdict == "suspicious"
+
+
+def test_an_ordinary_upi_payment_with_uppercase_params_is_not_called_dangerous() -> None:
+    """NPCI QR codes often use uppercase PA=, PN=, AM= params."""
+    verdict = check_url("upi://pay?PA=plumber@oksbi&PN=Plumber&AM=2200")
+    assert verdict.verdict == "suspicious"
+    assert "upi_open_amount" not in {s.code for s in verdict.signals}
