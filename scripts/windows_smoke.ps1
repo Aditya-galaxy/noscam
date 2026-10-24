@@ -72,7 +72,12 @@ foreach ($i in 1..60) {
 }
 
 Check "service starts and answers /health" {
-    if (-not $up) { throw "no answer on 127.0.0.1:8787 within 60s" }
+    if (-not $up) {
+        $log = Get-ChildItem (Join-Path $env:LOCALAPPDATA "Packages") -Recurse -Filter noscam.log `
+            -ErrorAction SilentlyContinue | Select-Object -First 1
+        $tail = if ($log) { (Get-Content $log.FullName -Tail 40) -join "`n" } else { "(no noscam.log written)" }
+        throw "no answer on 127.0.0.1:8787 within 60s. Log:`n$tail"
+    }
     $h = Invoke-RestMethod http://127.0.0.1:8787/health
     "version $($h.version)"
 }

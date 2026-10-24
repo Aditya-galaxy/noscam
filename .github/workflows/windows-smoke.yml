@@ -9,6 +9,9 @@ on:
   push:
     branches: [ci/windows-smoke]
     paths:
+      - noscam.py
+      - service/**
+      - scripts/build_desktop.py
       - scripts/build_msix.py
       - scripts/windows_smoke.ps1
       - .github/workflows/windows-smoke.yml

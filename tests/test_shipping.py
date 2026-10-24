@@ -146,3 +146,24 @@ def test_msix_version_reserves_the_fourth_part_for_the_store() -> None:
     assert build_msix.store_version("2.0") == "2.0.0.0"
     import xml.dom.minidom
     xml.dom.minidom.parseString(build_msix.manifest("A.B", "CN=X", "Me", "1.2.1.0"))
+
+
+def test_a_windowed_app_with_no_console_gets_a_log_file(monkeypatch, tmp_path) -> None:
+    """PyInstaller --noconsole starts with sys.stdout/sys.stderr = None, and
+    uvicorn calls sys.stdout.isatty() while configuring logging — which killed
+    the gate thread on Windows. attach_log must give both a real stream."""
+    import sys
+    import noscam
+
+    monkeypatch.setenv("NOSCAM_DATA", str(tmp_path))
+    monkeypatch.setattr(sys, "stdout", None)
+    monkeypatch.setattr(sys, "stderr", None)
+    noscam.attach_log()
+    assert sys.stdout is not None and sys.stderr is not None
+    assert sys.stdout.isatty() is False
+    sys.stdout.flush()
+    assert "started" in (tmp_path / "noscam.log").read_text()
+
+    import uvicorn
+    from uvicorn.config import Config
+    Config(app="service.app:app", log_level="warning").configure_logging()   # the call that crashed
