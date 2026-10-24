@@ -117,7 +117,41 @@ def seed(port: int) -> None:
     call("POST", "/household/reset")
 
 
+def attach_log() -> None:
+    """Give a windowed app somewhere to write.
+
+    Built without a console (the desktop apps, the Store package), Python
+    starts with sys.stdout and sys.stderr set to None. Anything that touches
+    them then crashes — uvicorn checks sys.stdout.isatty() while configuring
+    its logging, so the gate thread died before it ever listened and the app
+    sat in the tray doing nothing. Point both at a log file in the household
+    folder instead: the crash goes away, and when something does go wrong
+    there is a file a person can send.
+    """
+    if sys.stdout is not None and sys.stderr is not None:
+        return
+    try:
+        os.makedirs(paths.data_dir(), exist_ok=True)
+        log = open(os.path.join(paths.data_dir(), "noscam.log"), "a",  # noqa: SIM115
+                   encoding="utf-8", buffering=1)
+    except OSError:
+        log = open(os.devnull, "w", encoding="utf-8")  # noqa: SIM115
+    sys.stdout = sys.stdout or log
+    sys.stderr = sys.stderr or log
+    print(f"\n--- NoScam {__import__('service').__version__} started "
+          f"{time.strftime('%Y-%m-%d %H:%M:%S')} ---")
+
+
 def main() -> int:
+    attach_log()
+    if os.name == "nt":
+        # Sharp tray icon and windows on high-DPI screens (per-monitor v2).
+        try:
+            import ctypes
+
+            ctypes.windll.user32.SetProcessDpiAwarenessContext(ctypes.c_void_p(-4))
+        except Exception:                              # noqa: BLE001 — older Windows
+            pass
     parser = argparse.ArgumentParser(description="Start NoScam.")
     parser.add_argument("--port", type=int, default=8787)
     demo = parser.add_mutually_exclusive_group()
@@ -243,4 +277,11 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    try:
+        raise SystemExit(main())
+    except Exception:
+        # Lands in noscam.log for the windowed apps, which have no console.
+        import traceback
+
+        traceback.print_exc()
+        raise

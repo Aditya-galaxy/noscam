@@ -80,6 +80,10 @@ Then double-click the `.msix`, and check:
 - [ ] Settings → Apps → Startup lists NoScam and can turn it off.
 - [ ] Uninstall removes it cleanly.
 
+This whole checklist except the sign-in step is automated: the
+**windows-smoke** workflow installs the package on a Windows runner, runs 14
+checks and the certification kit, and uploads a test-signed copy.
+
 Optional but worth it: run the **Windows App Certification Kit** (installed with
 the Windows SDK) against the package — it is the same automated test the Store runs.
 
@@ -149,6 +153,11 @@ location sharing. Expect a 3+ / Everyone rating.
 > are local stand-ins and move no money. Full protection in other sites needs the
 > NoScam browser extension (separate Edge Add-ons listing), which is not required
 > for the app to function.
+>
+> Windows App Certification Kit: all required tests pass. The optional "Blocked
+> executables" test reports string matches such as "cmd" inside the bundled
+> Python runtime and OpenSSL libraries (python312.dll, ucrtbase.dll,
+> libcrypto-3.dll); the app does not launch cmd, PowerShell or reg.
 
 **Restricted capability justification (runFullTrust):**
 
