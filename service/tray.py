@@ -73,6 +73,7 @@ def run_tray(port: int, on_quit: Callable[[], None], lan: bool = False) -> None:
         on_quit()
 
     from . import autostart, updates
+    from .paths import is_store_package
 
     def toggle_autostart(icon, item):
         if autostart.is_enabled():
@@ -91,8 +92,11 @@ def run_tray(port: int, on_quit: Callable[[], None], lan: bool = False) -> None:
         pystray.Menu.SEPARATOR,
         pystray.MenuItem("Open Guardian Dashboard", open_dashboard, default=True),
         pystray.MenuItem("View Audit Log", open_audit),
+        # A Store install starts at login through the startup task in its
+        # manifest, switched off in Settings → Apps → Startup, not from here.
         pystray.MenuItem("Start at login", toggle_autostart,
-                         checked=lambda item: autostart.is_enabled()),
+                         checked=lambda item: autostart.is_enabled(),
+                         visible=lambda item: not is_store_package()),
         pystray.Menu.SEPARATOR,
         pystray.MenuItem("Quit NoScam", quit_app),
     )

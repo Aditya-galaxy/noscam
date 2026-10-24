@@ -45,7 +45,11 @@ def is_newer(candidate: str, current: str = __version__) -> bool:
 
 
 def enabled() -> bool:
-    return os.environ.get("NOSCAM_NO_UPDATE_CHECK") != "1"
+    # A Store install is updated by the Store; pointing it at GitHub downloads
+    # would offer a second, unpackaged copy of the same app.
+    from .paths import is_store_package
+
+    return os.environ.get("NOSCAM_NO_UPDATE_CHECK") != "1" and not is_store_package()
 
 
 def check_now() -> Optional[str]:

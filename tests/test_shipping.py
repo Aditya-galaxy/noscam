@@ -120,3 +120,29 @@ def test_version_endpoint(api) -> None:
 ])
 def test_versions_compare_as_numbers(candidate, current, newer) -> None:
     assert updates.is_newer(candidate, current) is newer
+
+
+def test_not_a_store_package_off_windows() -> None:
+    import os as _os
+    if _os.name != "nt":
+        assert paths.is_store_package() is False
+
+
+def test_a_store_install_does_not_check_github_for_updates(monkeypatch) -> None:
+    monkeypatch.delenv("NOSCAM_NO_UPDATE_CHECK", raising=False)
+    monkeypatch.setattr(paths, "is_store_package", lambda: True)
+    assert updates.enabled() is False
+    monkeypatch.setattr(paths, "is_store_package", lambda: False)
+    assert updates.enabled() is True
+
+
+def test_msix_version_reserves_the_fourth_part_for_the_store() -> None:
+    import importlib.util, pathlib
+    spec = importlib.util.spec_from_file_location(
+        "build_msix", pathlib.Path(__file__).resolve().parent.parent / "scripts" / "build_msix.py")
+    build_msix = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(build_msix)
+    assert build_msix.store_version("1.2.1") == "1.2.1.0"
+    assert build_msix.store_version("2.0") == "2.0.0.0"
+    import xml.dom.minidom
+    xml.dom.minidom.parseString(build_msix.manifest("A.B", "CN=X", "Me", "1.2.1.0"))

@@ -9,6 +9,8 @@ name: release
 #            APPLE_ID, APPLE_TEAM_ID, APPLE_APP_PASSWORD
 #   Windows: AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET,
 #            AZURE_SIGNING_ENDPOINT, AZURE_SIGNING_ACCOUNT, AZURE_CERT_PROFILE
+#   Store:   vars (not secrets) MSIX_IDENTITY_NAME, MSIX_PUBLISHER,
+#            MSIX_PUBLISHER_DISPLAY_NAME from Partner Center → Product identity
 #   Android: ANDROID_KEYSTORE_B64, NOSCAM_KEYSTORE_PASSWORD, NOSCAM_KEY_ALIAS,
 #            NOSCAM_KEY_PASSWORD
 
@@ -147,6 +149,20 @@ jobs:
         with:
           name: noscam-windows
           path: dist/NoScam-Setup.exe
+      # The Microsoft Store package. Left unsigned on purpose: the Store signs
+      # it after certification. Identity comes from repository *variables*
+      # (Settings → Secrets and variables → Actions → Variables), copied from
+      # Partner Center → Product identity; without them it is a test build.
+      - name: Build the Microsoft Store package (MSIX)
+        env:
+          MSIX_IDENTITY_NAME: ${{ vars.MSIX_IDENTITY_NAME }}
+          MSIX_PUBLISHER: ${{ vars.MSIX_PUBLISHER }}
+          MSIX_PUBLISHER_DISPLAY_NAME: ${{ vars.MSIX_PUBLISHER_DISPLAY_NAME }}
+        run: python scripts/build_msix.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: noscam-msix
+          path: dist/NoScam-*-x64.msix
 
   build-android:
     needs: test
