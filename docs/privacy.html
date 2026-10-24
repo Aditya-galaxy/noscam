@@ -92,6 +92,14 @@
       what was held or approved.
     </li>
     <li>
+      <strong>Android DNS Guardian (off by default):</strong> If you turn it on, NoScam checks each
+      website name your phone looks up, on the phone, and blocks scam lookalikes. Every other lookup is
+      passed to Cloudflare's public DNS service (<code>1.1.1.1</code>), so Cloudflare sees which website
+      names your phone looks up while it is on — the same information your mobile network or Wi-Fi
+      provider sees without it. NoScam does not record these lookups. Only website names are involved;
+      the content of your browsing, banking and messages does not pass through it.
+    </li>
+    <li>
       <strong>Update check:</strong> Once a day the desktop program asks GitHub
       (<code>api.github.com</code>) for the newest release number, so it can tell you when a newer
       version exists. The request contains nothing about you or your household, and nothing is
@@ -101,7 +109,7 @@
 
   <h2>3. Third-party network communications</h2>
   <p>
-    By default, NoScam operates entirely on your local machine (<code>127.0.0.1</code>). There are three
+    By default, NoScam operates entirely on your local machine (<code>127.0.0.1</code>). There are four
     external communications, and none of them carries your payment details in readable form:
   </p>
   <ul>

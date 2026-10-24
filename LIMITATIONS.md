@@ -25,16 +25,26 @@ which runs our content script inside Safari only and requires Xcode and App
 Store review. So on iPhone, pasting stays the way in, and the phone's real job
 is being the second device that approves.
 
-Two other device-wide options we have deliberately *not* taken:
+Two device-wide options, and what we did with each:
 
 - **An accessibility service** could read every screen and stop anything. It is
   also precisely the permission the scam apps ask for, and teaching people to
-  grant it is teaching them the habit that gets them robbed.
-- **A VPN or Private DNS filter** would block reported hosts on the whole device
-  with no app at all, but it needs a hosted resolver and a domain, and it can
-  only block by hostname — it cannot see a payment about to happen.
-
-Neither is built. Both are honest roadmap, not claims.
+  grant it is teaching them the habit that gets them robbed. **Not built, on
+  purpose.**
+- **A DNS filter** is now built, as an **optional** part of the Android app
+  (the DNS Guardian, off until the person turns it on). It uses Android's
+  VpnService to see only the phone's DNS lookups, answers lookalike, punycode,
+  raw-IP and remote-access domains with 0.0.0.0, and forwards every other lookup
+  to Cloudflare's public resolver (1.1.1.1). Web, banking and app traffic does
+  not go through it. What that means honestly:
+  - Cloudflare sees the names the phone looks up while it is on, over ordinary
+    unencrypted DNS — as the phone's normal network resolver would without it.
+    NoScam itself logs nothing.
+  - It blocks by hostname only. It cannot see a payment about to happen, and a
+    brand-new scam domain with a clean name passes.
+  - Apps and browsers that use their own encrypted DNS (Android Private DNS,
+    Chrome Secure DNS) go around it.
+  - Android shows a key icon and calls it a VPN, because that is the mechanism.
 
 A web app also cannot read your SMS, which is why a link that arrives by text
 and is typed in by hand looks clean to the gate.

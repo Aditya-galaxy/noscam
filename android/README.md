@@ -29,8 +29,8 @@ For apps that do not respect browser intent delegation (such as embedded webview
 - Normal web, banking, and application traffic is **not** routed through any VPN server; only DNS resolution runs through the local TUN interface.
 - Evaluates domains against `DnsFilter`:
   - **Sinkholes (0.0.0.0)** lookalike brand domains (`sbi-kyc.xyz`, `paypal-verify.click`), punycode (`xn--`), raw numeric IPs, and remote-access software (`anydesk.com`, `teamviewer.com`).
-  - Forwards clean queries to upstream encrypted DNS (`1.1.1.1`).
-- Completely on-device and zero-knowledge: no browsing or DNS queries are ever logged to an external cloud.
+  - Forwards every other query to Cloudflare's public resolver (`1.1.1.1`) over ordinary, unencrypted DNS (UDP 53).
+- Optional, and off until the person turns it on. The decision is made on the device and NoScam logs nothing, but while it is on Cloudflare sees the names the phone looks up — as the network's normal resolver would without it. Apps using their own encrypted DNS (Private DNS, Chrome Secure DNS) bypass it.
 
 ### App files sent in chats
 
