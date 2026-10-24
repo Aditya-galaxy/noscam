@@ -144,11 +144,26 @@ def main() -> int:
         # The service must be told before it starts: from that moment, anything
         # arriving from another device has to prove it belongs here.
         os.environ["NOSCAM_LAN"] = "1"
+    if paths.is_store_package():
+        # The Store build is started at every login by its startup task, which
+        # cannot pass arguments. Open the browser on the very first run, for
+        # setup, and never again on its own; after that the tray icon is how
+        # the person reaches it.
+        marker = os.path.join(paths.data_dir(), ".opened-once")
+        if os.path.exists(marker):
+            args.no_open = True
+        else:
+            os.makedirs(paths.data_dir(), exist_ok=True)
+            with open(marker, "w", encoding="utf-8") as fh:
+                fh.write("1")
+
     if already_running(args.port):
         # Opened again while it is already running at login: show it, don't
         # fail on the busy port.
         print(f"  NoScam is already running: http://127.0.0.1:{args.port}/app/")
-        if not args.no_open:
+        # A second launch is always a person clicking the icon (the startup
+        # task only ever starts the first copy), so show them the app.
+        if not args.no_open or paths.is_store_package():
             webbrowser.open(f"http://127.0.0.1:{args.port}/app/")
         return 0
     start_gate(args.port, lan=args.lan)

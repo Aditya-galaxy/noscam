@@ -65,7 +65,7 @@ one channel.
 - **Gift cards**: back in the message, click the gift-card link and press *Buy
   gift card* → **"Nobody legitimate is ever paid in gift cards."** No tax
   office, bank, police force or utility takes payment this way.
-- **Install**: click `sbi-support.apk`. With the extension loaded, the download
+- **Install**: click `bank-support.apk`. With the extension loaded, the download
   is cancelled before it lands.
 - **Identity numbers**: type a card or Aadhaar number into the fake page →
   refused, with the line that matters: unlike a password, you cannot change it

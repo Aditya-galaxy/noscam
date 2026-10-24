@@ -31,6 +31,34 @@ def is_frozen() -> bool:
     return bool(getattr(sys, "frozen", False))
 
 
+def is_store_package() -> bool:
+    """Installed from the Microsoft Store (an MSIX package with identity).
+
+    A packaged app is updated by the Store, starts at login through the startup
+    task in its manifest rather than the Run key (which Windows ignores for
+    packaged apps), and has its AppData writes redirected into the package's own
+    folder. Asked once per process; anything but Windows is never packaged.
+    """
+    global _store_package
+    if _store_package is None:
+        _store_package = False
+        if os.name == "nt":
+            try:
+                import ctypes
+
+                length = ctypes.c_uint32(0)
+                # ERROR_INSUFFICIENT_BUFFER (122) means there is a package name
+                # to return; APPMODEL_ERROR_NO_PACKAGE (15700) means there is not.
+                result = ctypes.windll.kernel32.GetCurrentPackageFullName(ctypes.byref(length), None)
+                _store_package = result == 122
+            except Exception:                          # noqa: BLE001 — older Windows has no such call
+                _store_package = False
+    return _store_package
+
+
+_store_package: "bool | None" = None
+
+
 def is_checkout() -> bool:
     """Running from a clone of the repository, rather than an installed copy."""
     return not is_frozen() and os.path.isdir(os.path.join(_REPO_ROOT, ".git"))

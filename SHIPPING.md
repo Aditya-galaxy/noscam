@@ -10,6 +10,7 @@ says what exists, what it costs, and who has to do it.
 |---|---|---|
 | Desktop app, macOS | `release.yml` → `NoScam-macOS-arm64.dmg`, `NoScam-macOS-x86_64.dmg` | Menu-bar app, starts at login, no Python needed |
 | Desktop app, Windows | `release.yml` → `NoScam-Setup.exe` (Inno Setup, per-user, no admin) | Tray app; start-at-login is an installer checkbox |
+| Desktop app, Microsoft Store | `release.yml` → `NoScam-<version>-x64.msix` (signed by the Store) | Store install and updates, no SmartScreen; see `docs/MICROSOFT_STORE_SUBMISSION.md` |
 | `pipx install git+https://github.com/Aditya-galaxy/noscam` | built from the repository by pip; checked by the `wheel` CI job | One line, for people who own a terminal |
 | Chrome / Edge extension | `package.py` → `noscam-extension-chrome.zip` | Shows a “!” and a download link until the app is running |
 | Firefox extension | `package.py` → `noscam-extension-firefox.zip` | Same, with Firefox's manifest (`background.scripts`, gecko id, 121+) |
@@ -30,6 +31,7 @@ the build says, in its log, that the output is unsigned.
 | Step | Cost | Without it |
 |---|---|---|
 | Apple Developer ID + notarisation | $99/year | Gatekeeper refuses to open the app from a download |
+| Microsoft Store (individual) | Free; signs the MSIX itself | — |
 | Windows signing — Azure Artifact Signing | ~$10/month (US/Canada individuals; elsewhere an OV certificate, ~$200–400/year) | SmartScreen warns on every download, until reputation builds |
 | Chrome Web Store | $5 once, days of review | Developer-mode install only |
 | Edge Add-ons, Firefox AMO | Free | — |
