@@ -1,0 +1,58 @@
+name: windows-smoke
+
+# Installs the Microsoft Store package on a real Windows machine and checks it
+# works, then runs the Windows App Certification Kit — the same automated test
+# the Store runs on submission. Leaves a test-signed copy and its certificate
+# as an artifact, for installing by hand on your own PC.
+on:
+  workflow_dispatch:
+  push:
+    branches: [ci/windows-smoke]
+    paths:
+      - scripts/build_msix.py
+      - scripts/windows_smoke.ps1
+      - .github/workflows/windows-smoke.yml
+
+jobs:
+  smoke:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt pyinstaller pillow pystray
+      - run: python scripts/build_desktop.py
+
+      - name: Install the package and test it
+        shell: pwsh
+        run: ./scripts/windows_smoke.ps1
+
+      - name: Windows App Certification Kit
+        if: always()
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          $kit = "C:\Program Files (x86)\Windows Kits\10\App Certification Kit\appcert.exe"
+          if (-not (Test-Path $kit)) { "The certification kit is not installed on this runner."; exit 0 }
+          $msix = (Get-ChildItem dist\NoScam-*-x64.msix | Select-Object -First 1).FullName
+          & $kit reset
+          & $kit test -appxpackagepath $msix -reportoutputpath "$PWD\dist\wack-report.xml"
+          if (Test-Path dist\wack-report.xml) {
+            [xml]$r = Get-Content dist\wack-report.xml
+            "Overall: $($r.REPORT.OVERALL_RESULT)"
+            $r.REPORT.REQUIREMENTS.REQUIREMENT | ForEach-Object {
+              $req = $_
+              $req.TEST | ForEach-Object { "{0,-8} {1} / {2}" -f $_.RESULT.InnerText, $req.TITLE, $_.NAME }
+            }
+          }
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: noscam-windows-test
+          path: |
+            dist/NoScam-*-x64.msix
+            dist/NoScam-test-certificate.cer
+            dist/smoke-results.txt
+            dist/wack-report.xml
