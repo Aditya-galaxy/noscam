@@ -560,7 +560,7 @@ api("/status").then((st) => {
     ? `⚠ ${st.headline}. If a caller asked you to open it, hang up and close it.`
     : "⚠ Not protected yet: the NoScam browser extension isn't connected. Tap to install it.";
   if (!st.extension_connected) {
-    bar.href = "https://aditya-galaxy.github.io/noscam/#install";
+    bar.href = "https://noscam.kronagent.dev/#download";
     bar.target = "_blank";
     bar.rel = "noopener";
   }

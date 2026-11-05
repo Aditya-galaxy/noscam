@@ -26,7 +26,7 @@ chrome.runtime.sendMessage({ kind: "noscam:state" }, (reply) => {
                           "NoScam app on this computer, and it isn't running — so " +
                           "nothing is being checked right now.";
     const button = document.querySelector("a.button");
-    button.href = "https://aditya-galaxy.github.io/noscam/#install";
+    button.href = "https://noscam.kronagent.dev/#download";
     button.textContent = "Get or start the NoScam app";
     return;
   }

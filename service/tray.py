@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import logging
 import os
+import sys
 import webbrowser
 from typing import Callable
 
@@ -28,27 +29,42 @@ def is_available() -> bool:
         return False
 
 
-def _load_icon_image():
-    from PIL import Image, ImageDraw
+def system_uses_dark_theme() -> bool:
+    """Whether the taskbar / menu bar is dark, so the tray icon can be the opposite."""
+    try:
+        if sys.platform == "darwin":
+            import subprocess
 
-    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    icon_paths = [
-        os.path.join(here, "web", "icon-192.png"),
-        os.path.join(here, "extension", "icons", "icon-192.png"),
-    ]
-    for path in icon_paths:
+            out = subprocess.run(["defaults", "read", "-g", "AppleInterfaceStyle"],
+                                 capture_output=True, text=True, timeout=3).stdout
+            return "dark" in out.lower()
+        if os.name == "nt":
+            import winreg
+
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER,
+                                r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize") as key:
+                return winreg.QueryValueEx(key, "SystemUsesLightTheme")[0] == 0
+    except Exception:                                  # noqa: BLE001 — unknown: assume dark, the common default
+        pass
+    return True
+
+
+def _load_icon_image():
+    """The NoScam mark (a speech bubble with a pause sign), white on a dark
+    taskbar or menu bar and black on a light one. Falls back to the app icon."""
+    from PIL import Image
+
+    from .paths import resource
+
+    tray = "tray-white.png" if system_uses_dark_theme() else "tray-black.png"
+    for path in (resource("web", tray), resource("web", "icon-192.png"),
+                 resource("extension", "icons", "icon-192.png")):
         if os.path.exists(path):
             try:
                 return Image.open(path)
-            except Exception:
-                pass
-
-    # Fallback: Draw a crisp shield/circle icon programmatically
-    img = Image.new("RGBA", (64, 64), color=(0, 0, 0, 0))
-    draw = ImageDraw.Draw(img)
-    draw.ellipse((4, 4, 60, 60), fill=(20, 20, 20), outline=(50, 205, 50), width=4)
-    draw.ellipse((22, 22, 42, 42), fill=(50, 205, 50))
-    return img
+            except Exception:                          # noqa: BLE001
+                continue
+    return Image.new("RGBA", (64, 64), (11, 11, 11, 255))
 
 
 def run_tray(port: int, on_quit: Callable[[], None], lan: bool = False) -> None:
@@ -87,7 +103,7 @@ def run_tray(port: int, on_quit: Callable[[], None], lan: bool = False) -> None:
     from . import guard
 
     def open_install(icon, item):
-        webbrowser.open("https://aditya-galaxy.github.io/noscam/#install")
+        webbrowser.open("https://noscam.kronagent.dev/#download")
 
     def headline(item=None) -> str:
         st = guard.status()

@@ -12,7 +12,7 @@ This document outlines the submission process for publishing NoScam on the **Moz
 * **Summary**:
   > Refuses to let an instruction that arrived through a message authorise something irreversible.
 * **Support / Source Code**: `https://github.com/Aditya-galaxy/noscam`
-* **Privacy Policy URL**: `https://aditya-galaxy.github.io/noscam/privacy.html`
+* **Privacy Policy URL**: `https://noscam.kronagent.dev/privacy.html`
 * **Upload Asset**: Upload `dist/noscam-extension-firefox.zip`. `python3 package.py` writes it with the Firefox manifest: `background.scripts` instead of Chrome's `service_worker`, the gecko add-on id, and a minimum of Firefox 121.
 * **Host permissions are optional in Firefox MV3**: after installing, the user has to allow NoScam on all sites (Add-ons → NoScam → Permissions), or the content script will not run. Say this in the listing and the reviewer notes.
 
