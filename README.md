@@ -7,7 +7,7 @@
 
 # NoScam
 
-[**Download and read about it**](https://aditya-galaxy.github.io/noscam/) ·
+[**Download and read about it**](https://noscam.kronagent.dev/) ·
 [**Watch the demo (3 min)**](https://aditya-galaxy.github.io/noscam/noscam-demo.mp4) ·
 [What it cannot do](LIMITATIONS.md)
 
@@ -107,7 +107,7 @@ Thirty hand-written situations are a regression test, not a measured accuracy
 claim. A real number needs real households, and nobody has used this in one yet.
 
 **If you are not going to read this file:** the
-[download page](https://aditya-galaxy.github.io/noscam/) says what it does, what
+[download page](https://noscam.kronagent.dev/) says what it does, what
 it costs, what leaves your computer (nothing about your money) and how to
 install it — written for a person, not a developer.
 

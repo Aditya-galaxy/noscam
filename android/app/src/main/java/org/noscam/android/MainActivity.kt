@@ -386,7 +386,7 @@ class MainActivity : Activity() {
             text = "How NoScam works"
             setBackgroundColor(Color.TRANSPARENT)
             setTextColor(Color.DKGRAY)
-            setOnClickListener { openInBrowser("https://aditya-galaxy.github.io/noscam/") }
+            setOnClickListener { openInBrowser("https://noscam.kronagent.dev/") }
         }
         layout.addView(btnAbout)
 

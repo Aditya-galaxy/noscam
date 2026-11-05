@@ -103,7 +103,7 @@ def run_tray(port: int, on_quit: Callable[[], None], lan: bool = False) -> None:
     from . import guard
 
     def open_install(icon, item):
-        webbrowser.open("https://aditya-galaxy.github.io/noscam/#install")
+        webbrowser.open("https://noscam.kronagent.dev/#download")
 
     def headline(item=None) -> str:
         st = guard.status()

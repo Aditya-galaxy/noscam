@@ -151,7 +151,7 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 // instead of looking like it works: a security tool that silently does nothing
 // is worse than none.
 
-const DOWNLOAD_PAGE = "https://aditya-galaxy.github.io/noscam/#install";
+const DOWNLOAD_PAGE = "https://noscam.kronagent.dev/#download";
 
 async function serviceRunning() {
   try {

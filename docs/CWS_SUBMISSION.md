@@ -57,7 +57,7 @@ dashboard — change the manifest and re-upload instead.
 - **Screenshots:** `docs/store/screenshot-1.png` (payment held), `docs/store/screenshot-2.png`
   (gift cards refused).
 - **Small promo tile:** `docs/store/promo-small-440x280.png`
-- **Official URL:** none. **Homepage URL:** `https://aditya-galaxy.github.io/noscam/`
+- **Official URL:** none. **Homepage URL:** `https://noscam.kronagent.dev/`
 - **Support URL:** `https://github.com/Aditya-galaxy/noscam/issues`
 
 ## Privacy practices
@@ -100,7 +100,7 @@ send some of it, and over-disclosing is safer than a rejection:
 Then tick all three certifications (not sold to third parties; not used for
 unrelated purposes; not used for creditworthiness or lending).
 
-**Privacy policy URL:** `https://aditya-galaxy.github.io/noscam/privacy.html`
+**Privacy policy URL:** `https://noscam.kronagent.dev/privacy.html`
 
 ## Distribution
 

@@ -95,8 +95,8 @@ Do **not** upload the test-signed copy; upload the unsigned artifact.
 
 **Properties**
 - Category: **Security** (subcategory none) — or *Utilities & tools*.
-- Privacy policy URL: `https://aditya-galaxy.github.io/noscam/privacy.html`
-- Website: `https://aditya-galaxy.github.io/noscam/`
+- Privacy policy URL: `https://noscam.kronagent.dev/privacy.html`
+- Website: `https://noscam.kronagent.dev/`
 - Support contact: `https://github.com/Aditya-galaxy/noscam/issues`
 - "This product accesses, collects or transmits personal information": **Yes**
   (it handles payment details locally, and the optional relay and advice line
