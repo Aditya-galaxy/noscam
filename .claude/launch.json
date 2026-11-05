@@ -1,0 +1,16 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "noscam-site",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "site/server.js"
+      ],
+      "port": 8080,
+      "env": {
+        "DRY_RUN": "1"
+      }
+    }
+  ]
+}
