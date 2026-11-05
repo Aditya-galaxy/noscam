@@ -20,7 +20,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import __version__, updates
+from . import __version__, guard, updates
 from .audit import AuditLog
 from .explain import coach
 from .links import check_url
@@ -354,6 +354,10 @@ def gate_check(payload: CheckIn) -> DecisionOut:
         "evidence": decision.evidence,
         "hold_id": hold_id,
     }, at=now)
+    note = guard.describe_decision(payload.action.model_dump(), decision.disposition.value,
+                                   decision.headline)
+    if note:
+        guard.alert(*note, key=f"{action.host}:{decision.reason_code}")
     return _decision_out(decision, household.limits, hold_id)
 
 
@@ -794,8 +798,18 @@ def audit_recent(limit: int = 25) -> list[dict[str, Any]]:
 
 
 @app.get("/health")
-def health() -> dict[str, Any]:
+def health(client: str = "") -> dict[str, Any]:
+    # The extension checks in once a minute with ?client=extension. That only
+    # feeds the "Protected / not connected" status a person sees; a page that
+    # fakes it can make the tray look happier, not change any decision.
+    if client == "extension":
+        guard.saw_extension()
     return {"ok": True, "service": "noscam", "version": __version__}
+
+
+@app.get("/status")
+def protection_status() -> dict[str, Any]:
+    return guard.status()
 
 
 @app.get("/version")

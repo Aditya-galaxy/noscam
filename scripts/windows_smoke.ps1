@@ -135,6 +135,35 @@ Check "a web page cannot change settings" {
     }
 }
 
+Check "status says not protected until the browser extension checks in" {
+    $st = Invoke-RestMethod http://127.0.0.1:8787/status
+    if ($st.state -ne "unprotected") { throw "state $($st.state)" }
+    Invoke-RestMethod "http://127.0.0.1:8787/health?client=extension" | Out-Null
+    $st = Invoke-RestMethod http://127.0.0.1:8787/status
+    if ($st.state -ne "protected") { throw "after check-in: $($st.state)" }
+    "unprotected -> protected"
+}
+
+Check "notices a remote-control app starting (AnyDesk stand-in)" {
+    # A harmless long-running program under AnyDesk's name: the watch reads
+    # process names only, so this is what it would see.
+    $fake = Join-Path $env:TEMP "AnyDesk.exe"
+    Copy-Item "$env:WINDIR\System32\PING.EXE" $fake -Force
+    $p = Start-Process -FilePath $fake -ArgumentList "-n", "90", "127.0.0.1" -WindowStyle Hidden -PassThru
+    try {
+        $seen = $false
+        foreach ($i in 1..40) {
+            $st = Invoke-RestMethod http://127.0.0.1:8787/status
+            if ($st.remote_access_running -contains "AnyDesk") { $seen = $true; break }
+            Start-Sleep -Seconds 1
+        }
+        if (-not $seen) { throw "not detected within 40s (state $($st.state))" }
+        "detected: $($st.headline)"
+    } finally {
+        Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+    }
+}
+
 Check "audit log chain verifies" {
     $a = Invoke-RestMethod http://127.0.0.1:8787/audit/verify
     if (-not $a.ok) { throw "broken at line $($a.first_broken_line)" }
