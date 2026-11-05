@@ -139,8 +139,15 @@ location sharing. Expect a 3+ / Everyone rating.
   > Checks links: lookalike domains, fake UPI requests and AutoPay mandates
   > Tamper-evident history of everything it stopped
   > Runs locally — no account, no cloud
-- *Screenshots (desktop, 1366×768 or larger):* `docs/store/windows-1.png`,
-  `docs/store/windows-2.png` (1440×900).
+- *Screenshots (desktop, 1920×1080):* `docs/store/microsoft/screenshot-1.png` … `screenshot-5.png`,
+  in order — held payment, refused gift card, guardian approval, link check, tray and alert.
+  Suggested captions: "Holds the payment a scam message asked for" · "Gift cards, OTPs and
+  remote control: refused" · "Someone you trust says yes" · "Checks a link before you tap it" ·
+  "Quiet like an antivirus, loud when it matters".
+- *Store logos:* 1:1 box art `docs/store/microsoft/box-art-2160.png` (the main Store logo);
+  2:3 poster art `docs/store/microsoft/poster-art-1440x2160.png` (use `poster-art-9x16-1440x2560.png`
+  if the page asks for 9:16). All rendered by `brand/make_icons.py`; screenshots from
+  `docs/store/microsoft/src/shots.html` (real captures in `src/`).
 - *Search terms (up to 7):* scam, fraud, phishing, UPI, digital arrest, OTP, security
 - *Copyright:* © 2026 Aditya Kumar
 
