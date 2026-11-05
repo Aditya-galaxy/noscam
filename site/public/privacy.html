@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NoScam — Privacy Policy</title>
+<meta name="description" content="NoScam privacy policy. Zero accounts, zero tracking, zero cloud storage. Everything runs on your own machine.">
+<link rel="stylesheet" href="/privacy.css">
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <a href="./" class="inl1"><b>NoScam</b></a>
+    <nav>
+      <a href="./">Overview</a>
+      <a href="https://github.com/Aditya-galaxy/noscam">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <h1>Privacy Policy</h1>
+  <p class="inl2">Last updated: September 2026</p>
+
+  <div class="box">
+    <strong>The short, plain summary:</strong>
+    NoScam is designed so that nothing about your money, your passwords, or your browsing
+    history ever leaves your computer. We do not have accounts, we do not run a tracking
+    database, and we do not sell or monetize any data.
+  </div>
+
+  <h2>1. What NoScam does and how it runs</h2>
+  <p>
+    NoScam is open-source security software consisting of a local daemon running on your computer
+    and a companion browser extension. Its single purpose is to stop Authorised-Push-Payment (APP)
+    fraud by checking whether an irreversible action (sending money, entering a one-time passcode,
+    or installing remote-control software) was prompted by an unsolicited message.
+  </p>
+
+  <h2>2. What information is processed locally</h2>
+  <p>All safety decisions are made <strong>locally on your own machine</strong>:</p>
+  <ul>
+    <li>
+      <strong>Navigation Provenance:</strong> The extension observes navigation transitions (whether a page was
+      typed, opened from bookmarks, or clicked from a webmail or messaging tab) using the browser's
+      <code>webNavigation</code> API. This is stored temporarily in your browser's private session memory
+      (<code>chrome.storage.session</code>) and decays after 15 minutes.
+    </li>
+    <li>
+      <strong>Remote-control watch (desktop app):</strong> Every few seconds the desktop app reads the
+      <em>names</em> of running programs to notice remote-control tools such as AnyDesk or TeamViewer, and
+      warns you when one starts. It never reads what any program contains or does, keeps no list of what you
+      run, and sends nothing anywhere.
+    </li>
+    <li>
+      <strong>Payment & Form Action Gating:</strong> When you click a payment button or submit a transfer,
+      the extension inspects the recipient name and amount locally to check if it exceeds your household
+      limits or is a newly contacted payee.
+    </li>
+    <li>
+      <strong>Downloads Interception:</strong> The extension monitors download file names to cancel known
+      remote-desktop installers (such as AnyDesk, TeamViewer, or deceptive APKs) commonly pushed during
+      phone scams.
+    </li>
+    <li>
+      <strong>Tamper-Evident Audit Log:</strong> Actions and decisions are logged in a local SHA-256 chained
+      log on your hard drive (<code>data/audit.jsonl</code>) so you and your family have a clear record of
+      what was held or approved.
+    </li>
+    <li>
+      <strong>Android DNS Guardian (off by default):</strong> If you turn it on, NoScam checks each
+      website name your phone looks up, on the phone, and blocks scam lookalikes. Every other lookup is
+      passed to Cloudflare's public DNS service (<code>1.1.1.1</code>), so Cloudflare sees which website
+      names your phone looks up while it is on — the same information your mobile network or Wi-Fi
+      provider sees without it. NoScam does not record these lookups. Only website names are involved;
+      the content of your browsing, banking and messages does not pass through it.
+    </li>
+    <li>
+      <strong>Update check:</strong> Once a day the desktop program asks GitHub
+      (<code>api.github.com</code>) for the newest release number, so it can tell you when a newer
+      version exists. The request contains nothing about you or your household, and nothing is
+      downloaded or installed automatically. Set <code>NOSCAM_NO_UPDATE_CHECK=1</code> to turn it off.
+    </li>
+  </ul>
+
+  <h2>3. Third-party network communications</h2>
+  <p>
+    By default, NoScam operates entirely on your local machine (<code>127.0.0.1</code>). There are four
+    external communications, and none of them carries your payment details in readable form:
+  </p>
+  <ul>
+    <li>
+      <strong>End-to-End Encrypted (E2EE) Remote Pairing — off by default:</strong> NoScam makes no
+      connection to the relay until you press “Turn on” in the phone page, and stops when you press
+      “Turn off”. If you choose to pair a second device
+      (such as an adult child's phone in another city), notification payloads are encrypted client-side
+      with AES-256-GCM before being dispatched through a stateless blind pub/sub relay (such as
+      <code>ntfy.sh</code>). The relay operator sees only ciphertext blobs and has no access to transaction
+      details, payees, or amounts.
+    </li>
+    <li>
+      <strong>Optional AI Coaching:</strong> If you explicitly configure a Google Gemini API key, NoScam
+      sends the decision's reason code, the website's address, the payee name as shown on the page
+      (truncated), the amount and any file name to generate a single sentence of plain advice. Account numbers, card numbers, passwords
+      and one-time codes are never sent. Without an API key, this feature is
+      off and deterministic explanations are used.
+    </li>
+  </ul>
+
+  <h2>4. What we never do</h2>
+  <ul>
+    <li>We never track or log which websites you visit outside of scam detection moments.</li>
+    <li>We never collect bank account numbers, PINs, or credit card numbers.</li>
+    <li>We never use analytics trackers, cookies, or telemetry beacons.</li>
+    <li>We never sell, rent, or trade any user information.</li>
+  </ul>
+
+  <h2>5. Your control and data deletion</h2>
+  <p>
+    Because all household configuration (limits, known payees, audit log) resides locally on your
+    device in the <code>data/</code> folder, you have complete control over your data. You can erase all
+    household records at any time by clicking "Reset" in the app or by deleting the local folder.
+    Uninstalling the extension immediately ceases all browser interception.
+  </p>
+
+  <h2>6. Open source and auditability</h2>
+  <p>
+    NoScam is open source under the MIT License. Anyone can inspect, build, and verify our code at:
+    <br>
+    <a href="https://github.com/Aditya-galaxy/noscam">github.com/Aditya-galaxy/noscam</a>
+  </p>
+</main>
+
+<footer>
+  <div class="wrap">
+    NoScam · Open source anti-fraud software · <a href="./">Home</a> · <a href="https://github.com/Aditya-galaxy/noscam">Source Code</a>
+  </div>
+</footer>
+</body>
+</html>

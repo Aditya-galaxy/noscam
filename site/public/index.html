@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NoScam — an antivirus for scams</title>
+<meta name="description" content="NoScam runs quietly in the background and stops what a scam message tells you to do: the payment, the OTP, the remote-control app — even on a scam site made five minutes ago. Free, on your own device.">
+<link rel="icon" href="/favicon.png">
+<link rel="apple-touch-icon" href="/icon.png">
+<link rel="stylesheet" href="/style.css">
+<meta property="og:title" content="NoScam — an antivirus for scams">
+<meta property="og:description" content="Stops what a scam message tells you to do: the payment, the OTP, the remote-control app.">
+<meta property="og:image" content="https://noscam.kronagent.dev/og.png">
+<meta property="og:url" content="https://noscam.kronagent.dev/">
+<meta name="twitter:card" content="summary_large_image">
+<script src="/app.js" defer></script>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap top-row">
+    <a class="logo" href="/"><img src="/favicon.png" alt="" width="22" height="22"> NoScam</a>
+    <nav>
+      <a href="#how">How it works</a>
+      <a href="#stops">What it stops</a>
+      <a href="#privacy">Privacy</a>
+      <a class="nav-cta" href="#download">Download</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero wrap">
+    <p class="eyebrow">🥈 2nd place · TLN Cybersecurity Challenge 2026</p>
+    <h1>An antivirus<br><span class="soft">for scams.</span></h1>
+    <p class="lede">The scams that take the most money don't hack anything. They get you to do it yourself. NoScam runs quietly in the background and stops what a scam message tells you to do — even on a scam site made five minutes ago.</p>
+    <div class="cta-row">
+      <a class="btn primary big" id="primary-download" href="/download/windows">Download free</a>
+      <a class="btn big" href="#download">All platforms</a>
+    </div>
+    <p class="fine" id="primary-note">Windows · macOS · Android · Chrome, Edge and Firefox</p>
+  </section>
+
+  <section class="wrap showcase" aria-label="NoScam holding a payment">
+    <picture>
+      <source srcset="/held-960.webp 960w, /held-1440.webp 1440w" sizes="(max-width: 1080px) 100vw, 1032px">
+      <img src="/held-1440.webp" width="1440" height="900" alt="A fake bank page asking to move funds to a 'protected account'. NoScam has paused the payment: 'You're about to send ₹18,000 to RBI Safe Custody A/C, who you've never paid before — and you arrived here from Messages 3 seconds ago. Nothing has been sent yet.'">
+    </picture>
+    <p class="caption">A message sent you to a page asking you to move ₹18,000. Nothing leaves until someone you trust says yes.</p>
+  </section>
+
+  <section class="wrap statement">
+    <p>Antivirus asks, <em>“is this site known to be bad?”</em> A scam site is often brand new.</p>
+    <p class="strong">NoScam asks a question that needs no list: <em>did a message tell you to do this?</em></p>
+  </section>
+
+  <section class="wrap steps" id="how">
+    <h2>How it works</h2>
+    <ol class="grid three">
+      <li>
+        <span class="num">01</span>
+        <h3>It notices how you got there</h3>
+        <p>Typed it yourself, opened a bookmark, or clicked a link in WhatsApp, Telegram, email or SMS. That one fact separates you paying your landlord from a stranger moving your money.</p>
+      </li>
+      <li>
+        <span class="num">02</span>
+        <h3>It holds what can't be undone</h3>
+        <p>A payment to someone new, a one-time code, a password, a remote-control app — if a message sent you there, it pauses and says why, in one sentence you can check against your own memory.</p>
+      </li>
+      <li>
+        <span class="num">03</span>
+        <h3>Someone you trust says yes</h3>
+        <p>A held payment is approved on another person's phone. The caller on the line can clone a voice and rush you. They can't press that button.</p>
+      </li>
+    </ol>
+  </section>
+
+  <section class="wrap stops" id="stops">
+    <h2>What it stops</h2>
+    <div class="grid two">
+      <div class="card"><h3>“Move your money to a safe account”</h3><p>Payments to someone you've never paid, after a message — held for approval.</p></div>
+      <div class="card"><h3>“Read me the OTP”</h3><p>One-time codes and passwords typed on a page a message sent you to — refused.</p></div>
+      <div class="card"><h3>“Install AnyDesk so we can help”</h3><p>Remote-control downloads are refused, and if one is already running, NoScam warns you.</p></div>
+      <div class="card"><h3>Gift cards and crypto</h3><p>Nobody legitimate is paid in gift cards. Bought after a message, they're stopped.</p></div>
+      <div class="card"><h3>UPI “refunds” and AutoPay traps</h3><p>A collect request sends money <em>out</em>. A ₹99 mandate can be ₹99 every day. Both are decoded and shown plainly.</p></div>
+      <div class="card"><h3>Spy apps sent in chats <span class="tag">Android</span></h3><p>App files from WhatsApp are stopped before they install. Hidden apps that read your SMS or screen are found.</p></div>
+    </div>
+  </section>
+
+  <section class="wrap quiet">
+    <div class="split">
+      <div>
+        <h2>Quiet, like an antivirus should be</h2>
+        <p>It starts with your computer and sits in the tray. Most days you never see it. It tells you plainly whether you're protected — and if the browser extension isn't connected, it says so instead of showing a green dot over nothing.</p>
+        <p class="soft">You can always continue anyway. It's a pause, not a lock — and every override is written to a history that can't be quietly edited.</p>
+      </div>
+      <figure class="tray" aria-label="The NoScam tray menu">
+        <div class="tray-menu">
+          <div class="tray-item strong">✓ Protected</div>
+          <div class="tray-sep"></div>
+          <div class="tray-item">Open Guardian Dashboard</div>
+          <div class="tray-item">View Audit Log</div>
+          <div class="tray-item">✓ Start at login</div>
+          <div class="tray-sep"></div>
+          <div class="tray-item">Quit NoScam</div>
+        </div>
+        <div class="toast"><b>AnyDesk is running</b><span>If a caller asked you to open it, hang up and close it.</span></div>
+      </figure>
+    </div>
+  </section>
+
+  <section class="wrap privacy" id="privacy">
+    <h2>Your money's details stay on your device</h2>
+    <div class="grid three">
+      <div><h3>No account</h3><p>Nothing to sign up for. Limits, payees and history live in a folder on your own machine.</p></div>
+      <div><h3>No cloud decisions</h3><p>Every decision is made locally by readable rules, not an AI that can be talked around.</p></div>
+      <div><h3>Open source</h3><p>Every line is public. <a href="https://github.com/Aditya-galaxy/noscam">Read the code</a> or <a href="/privacy.html">the privacy policy</a>.</p></div>
+    </div>
+    <p class="fine">Optional features that use the network — approving from another network, the Android DNS filter, a daily update check — are off or disclosed in the privacy policy.</p>
+  </section>
+
+  <section class="wrap download" id="download">
+    <h2>Download</h2>
+    <p class="lede left">Free for everyone. Install the app on your computer, then add the browser extension so it can see the pages you open.</p>
+    <div class="grid two dl">
+      <a class="dl-card" data-os="windows" href="/download/windows">
+        <h3>Windows</h3><p>Windows 10 and 11 · 21 MB</p>
+        <p class="note">Not yet signed: if Windows says “protected your PC”, choose <b>More info → Run anyway</b>. A Microsoft Store version is on its way.</p>
+      </a>
+      <a class="dl-card" data-os="mac" id="mac-card" href="/download/mac-arm">
+        <h3>macOS</h3><p id="mac-detail">Apple silicon (M1 and later) · 27 MB</p>
+        <p class="note">Not yet notarised: right-click the app and choose <b>Open</b> the first time. <span class="alt">Intel Mac? <span class="linkish" data-href="/download/mac-intel">Download for Intel</span></span></p>
+      </a>
+      <a class="dl-card" data-os="android" href="/download/android">
+        <h3>Android</h3><p>Android 7 and later · 1 MB</p>
+        <p class="note">Test build. Stops app files sent in chats, finds hidden spy apps and checks links. Play Store listing coming.</p>
+      </a>
+      <div class="dl-card static">
+        <h3>Browser extension</h3><p>Chrome, Edge, Brave, Firefox</p>
+        <p class="note">Store listings are in review. Until then: <a href="/download/chrome">Chrome / Edge</a> or <a href="/download/firefox">Firefox</a> zip — unzip, open <code>chrome://extensions</code>, turn on Developer mode, <b>Load unpacked</b>.</p>
+      </div>
+    </div>
+    <p class="fine">iPhone: Apple doesn't let apps work in the background like this, so on iPhone NoScam is the phone that approves — open the dashboard link the desktop app shows you.</p>
+  </section>
+
+  <section class="wrap updates" id="updates">
+    <h2>Get updates</h2>
+    <p class="lede left">Store releases, the Android app on Play, and new protections. A few emails a year.</p>
+    <form class="signup" id="signup" novalidate>
+      <label class="sr" for="email">Email</label>
+      <input id="email" name="email" type="email" autocomplete="email" placeholder="you@example.com" required>
+      <label class="sr" for="interest">I'm protecting</label>
+      <select id="interest" name="interest">
+        <option value="family">Myself or my family</option>
+        <option value="business">A company or team</option>
+        <option value="defence">Defence or government users</option>
+      </select>
+      <input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+      <button class="btn primary" type="submit">Notify me</button>
+    </form>
+    <p class="fine" id="signup-msg" role="status"></p>
+  </section>
+
+  <section class="wrap closing">
+    <h2>A message cannot authorise your money.</h2>
+    <a class="btn primary big" href="#download">Download NoScam</a>
+  </section>
+</main>
+
+<footer class="wrap foot">
+  <p>NoScam · open source (MIT) · by Kronagent</p>
+  <p><a href="https://github.com/Aditya-galaxy/noscam">GitHub</a> · <a href="/privacy.html">Privacy</a> · <a href="https://github.com/Aditya-galaxy/noscam/blob/main/LIMITATIONS.md">What it can't do</a> · <a href="https://github.com/Aditya-galaxy/noscam/issues">Report a problem</a></p>
+</footer>
+</body>
+</html>
