@@ -167,3 +167,72 @@ def test_a_windowed_app_with_no_console_gets_a_log_file(monkeypatch, tmp_path) -
     import uvicorn
     from uvicorn.config import Config
     Config(app="service.app:app", log_level="warning").configure_logging()   # the call that crashed
+
+
+# --- the background guard -------------------------------------------------
+
+def test_status_is_unprotected_until_the_extension_checks_in(monkeypatch) -> None:
+    from service import guard
+    monkeypatch.setattr(guard, "_extension_seen_at", None)
+    monkeypatch.setattr(guard, "_remote_running", [])
+    assert guard.status()["state"] == "unprotected"
+    guard.saw_extension(now=1000.0)
+    assert guard.status(now=1060.0)["state"] == "protected"
+    # Quiet for longer than the extension's ping interval allows: say so.
+    assert guard.status(now=1000.0 + guard.EXTENSION_FRESH_SECONDS + 1)["state"] == "unprotected"
+
+
+def test_remote_control_tools_are_recognised_by_process_name() -> None:
+    from service import guard
+    names = ["explorer.exe", "anydesk.exe", "teamviewer_service.exe", "chrome.exe",
+             "remoting_host.exe", "rustdesk", "notepad.exe"]
+    assert guard.remote_access_in(names) == ["AnyDesk", "Chrome Remote Desktop", "RustDesk", "TeamViewer"]
+    assert guard.remote_access_in(["code", "python3", "zoom.us"]) == []
+
+
+def test_a_remote_tool_starting_alerts_once_and_changes_status(monkeypatch) -> None:
+    from service import guard
+    monkeypatch.setattr(guard, "_remote_running", [])
+    monkeypatch.setattr(guard, "_last_alert", {})
+    seen = []
+    monkeypatch.setattr(guard, "_listeners", [lambda t, m: seen.append(t)])
+    guard.check_remote_access(["anydesk.exe"])
+    guard.check_remote_access(["anydesk.exe"])           # still running: no second alert
+    assert seen == ["AnyDesk is running"]
+    assert guard.status()["state"] == "warning"
+    guard.check_remote_access([])
+    assert guard.status()["remote_access_running"] == []
+
+
+def test_alerts_describe_holds_and_ignore_allows() -> None:
+    from service import guard
+    assert guard.describe_decision({"type": "payment", "amount": 18000}, "allow", "x") is None
+    title, msg = guard.describe_decision({"type": "payment", "amount": 18000, "host": "fake.example"},
+                                         "needs_approval", "Paying someone new after a message")
+    assert title == "NoScam held a ₹18,000 payment"
+    assert "fake.example" in msg
+
+
+def test_extension_check_in_and_status_endpoint(api) -> None:
+    client, app_module = api
+    from service import guard
+    guard._extension_seen_at = None
+    assert client.get("/status").json()["state"] in ("unprotected", "warning")
+    client.get("/health?client=extension")
+    assert client.get("/status").json()["extension_connected"] is True
+
+
+def test_a_held_payment_raises_one_desktop_alert(api, monkeypatch) -> None:
+    client, _ = api
+    from datetime import datetime, timedelta, timezone
+    from service import guard
+    monkeypatch.setattr(guard, "_last_alert", {})
+    seen = []
+    monkeypatch.setattr(guard, "_listeners", [lambda t, m: seen.append(t)])
+    at = (datetime.now(timezone.utc) - timedelta(seconds=30)).isoformat()
+    payment = {"action": {"type": "payment", "host": "hdfc-secure.example", "amount": 18000,
+                          "payee": "Rahul Verma"},
+               "provenance": {"origin": "link", "source_host": "web.whatsapp.com", "at": at}}
+    client.post("/gate/check", json=payment)
+    client.post("/gate/check", json=payment)              # a retry: not a second pop-up
+    assert seen == ["NoScam held a ₹18,000 payment"]

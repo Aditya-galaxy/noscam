@@ -155,7 +155,7 @@ const DOWNLOAD_PAGE = "https://aditya-galaxy.github.io/noscam/#install";
 
 async function serviceRunning() {
   try {
-    const response = await fetch(`${SERVICE}/health`, { cache: "no-store" });
+    const response = await fetch(`${SERVICE}/health?client=extension`, { cache: "no-store" });
     return response.ok;
   } catch {
     return false;

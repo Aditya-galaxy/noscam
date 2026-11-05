@@ -236,7 +236,11 @@ def main() -> int:
         print("\n  No GEMINI_API_KEY: the advice line is off and the deterministic\n"
               "  explanation is shown instead. Everything else works.")
 
-    from service import updates
+    from service import guard, updates
+
+    # Watch for remote-control tools and the extension going quiet, in the
+    # background, whether or not there is a tray to show it.
+    guard.start()
 
     updates.start_background_checks(on_newer=lambda latest: print(
         f"\n  A newer NoScam ({latest}) is available: {updates.RELEASES_PAGE}\n"

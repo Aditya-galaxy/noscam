@@ -550,6 +550,23 @@ async function loadHousehold() {
   }
 }
 
+// Whether this computer is actually protected right now, said as plainly as an
+// antivirus would. Only shown when something needs doing.
+api("/status").then((st) => {
+  if (!st || st.state === "protected") return;
+  const bar = document.createElement(st.extension_connected ? "div" : "a");
+  bar.className = "update-bar status-bar";
+  bar.textContent = st.extension_connected
+    ? `⚠ ${st.headline}. If a caller asked you to open it, hang up and close it.`
+    : "⚠ Not protected yet: the NoScam browser extension isn't connected. Tap to install it.";
+  if (!st.extension_connected) {
+    bar.href = "https://aditya-galaxy.github.io/noscam/#install";
+    bar.target = "_blank";
+    bar.rel = "noopener";
+  }
+  document.body.prepend(bar);
+}).catch(() => {});
+
 // A newer release is announced, never installed behind the household's back.
 api("/version").then((v) => {
   if (!v || !v.update_available) return;

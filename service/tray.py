@@ -84,8 +84,22 @@ def run_tray(port: int, on_quit: Callable[[], None], lan: bool = False) -> None:
     def open_release(icon, item):
         webbrowser.open(updates.RELEASES_PAGE)
 
+    from . import guard
+
+    def open_install(icon, item):
+        webbrowser.open("https://aditya-galaxy.github.io/noscam/#install")
+
+    def headline(item=None) -> str:
+        st = guard.status()
+        mark = {"protected": "✓", "unprotected": "⚠", "warning": "⚠"}[st["state"]]
+        return f"{mark} {st['headline']}"
+
     menu = pystray.Menu(
-        pystray.MenuItem("● NoScam Active", None, enabled=False),
+        # Live, not a constant: a green "Active" over an unconnected browser
+        # is the one lie a security tool must not tell.
+        pystray.MenuItem(headline, open_dashboard, enabled=True),
+        pystray.MenuItem("Install the browser extension…", open_install,
+                         visible=lambda item: not guard.extension_connected()),
         pystray.MenuItem(lambda item: f"Update available: {updates.status()['latest']}",
                          open_release,
                          visible=lambda item: updates.status()["update_available"]),
@@ -101,5 +115,26 @@ def run_tray(port: int, on_quit: Callable[[], None], lan: bool = False) -> None:
         pystray.MenuItem("Quit NoScam", quit_app),
     )
 
-    icon = pystray.Icon("NoScam", image, "NoScam: Active", menu=menu)
-    icon.run()
+    icon = pystray.Icon("NoScam", image, "NoScam", menu=menu)
+
+    def refresh() -> None:
+        icon.title = f"NoScam — {guard.status()['headline']}"
+        try:
+            icon.update_menu()
+        except Exception:                      # noqa: BLE001 — some backends redraw on open anyway
+            pass
+
+    def show(title: str, message: str) -> None:
+        try:
+            icon.notify(message, title)
+        except Exception:                      # noqa: BLE001 — no notification support here
+            logger.info("%s: %s", title, message)
+
+    guard.on_status_change(refresh)
+    guard.on_alert(show)
+
+    def setup(icon) -> None:
+        icon.visible = True
+        refresh()
+
+    icon.run(setup=setup)
