@@ -92,6 +92,13 @@ def main() -> None:
     save(mark(1024, fg=INK, padding=0.06), "brand/noscam-mark-black-1024.png")
     save(mark(1024, fg=PAPER, padding=0.06), "brand/noscam-mark-white-1024.png")
     save(social_card(), "site/public/og.png")
+    # Microsoft Store listing art. Box art (1:1) is the main Store logo; poster
+    # art (2:3) is the tall tile; 9:16 is included because some listing pages ask for it.
+    save(box_art(2160), "docs/store/microsoft/box-art-2160.png")
+    save(box_art(1080), "docs/store/microsoft/box-art-1080.png")
+    save(poster_art(1440, 2160), "docs/store/microsoft/poster-art-1440x2160.png")
+    save(poster_art(720, 1080), "docs/store/microsoft/poster-art-720x1080.png")
+    save(poster_art(1440, 2560), "docs/store/microsoft/poster-art-9x16-1440x2560.png")
     save(promo_tile(), "docs/store/promo-small-440x280.png")
 
 
@@ -117,6 +124,30 @@ def social_card() -> Image.Image:
     d.multiline_text((80, 388), "Stops what a scam message tells you to do —\nthe payment, the OTP, the remote-control app.",
                      fill=(160, 160, 156, 255), font=_font(34), spacing=12)
     d.text((80, 546), "noscam.kronagent.dev", fill=(110, 110, 106, 255), font=_font(26))
+    return im.convert("RGB")
+
+
+def box_art(size: int) -> Image.Image:
+    """Square Store logo: the white mark on near-black, full bleed (the Store rounds corners)."""
+    im = Image.new("RGBA", (size, size), INK)
+    m = mark(int(size * 0.56), fg=PAPER)
+    im.alpha_composite(m, ((size - m.width) // 2, (size - m.height) // 2))
+    return im.convert("RGB")
+
+
+def poster_art(w: int, h: int) -> Image.Image:
+    """Tall Store tile: mark, name and line, centred in the upper half."""
+    im = Image.new("RGBA", (w, h), INK)
+    m = mark(int(w * 0.42), fg=PAPER)
+    top = int(h * 0.26)
+    im.alpha_composite(m, ((w - m.width) // 2, top))
+    d = ImageDraw.Draw(im)
+    name, line = _font(int(w * 0.11), True), _font(int(w * 0.045))
+    y = top + m.height + int(w * 0.06)
+    for text, font, fill in (("NoScam", name, PAPER), ("An antivirus for scams.", line, (160, 160, 156, 255))):
+        tw = d.textlength(text, font=font)
+        d.text(((w - tw) / 2, y), text, fill=fill, font=font)
+        y += int(font.size * 1.5)
     return im.convert("RGB")
 
 

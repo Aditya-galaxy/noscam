@@ -1,0 +1,50 @@
+<!doctype html><meta charset=utf-8>
+<style>
+  :root { --ink:#0b0b0b; --paper:#fbfbfa; --muted:#5f5f5c; --soft:#8d8d8a; --line:#e9e9e7; }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: var(--paper); font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; color: var(--ink); }
+  .slide { width: 1920px; height: 1080px; display: grid; grid-template-columns: 640px 1fr; align-items: center; gap: 72px; padding: 0 96px; position: relative; overflow: hidden; }
+  .brand { position: absolute; top: 64px; left: 96px; display: flex; align-items: center; gap: 14px; font-weight: 600; font-size: 28px; letter-spacing: -0.03em; }
+  .brand svg { width: 40px; height: 40px; }
+  h1 { font-size: 72px; line-height: 1.04; letter-spacing: -0.045em; font-weight: 650; }
+  h1 .soft { color: var(--soft); }
+  p { margin-top: 32px; font-size: 28px; line-height: 1.45; color: var(--muted); max-width: 560px; }
+  .desk img { width: 1060px; border-radius: 22px; border: 1px solid var(--line); box-shadow: 0 50px 110px -50px rgba(0,0,0,.45); }
+  .phones { display: flex; gap: 40px; justify-content: center; align-items: flex-start; }
+  .phone { width: 390px; height: 844px; border-radius: 52px; padding: 14px; background: var(--ink); box-shadow: 0 50px 110px -50px rgba(0,0,0,.5); }
+  .phone img { width: 100%; height: 100%; object-fit: cover; object-position: top; border-radius: 40px; display: block; }
+  .tray { display: flex; flex-direction: column; gap: 28px; align-items: flex-start; }
+  .menu { width: 440px; background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 10px; box-shadow: 0 40px 90px -40px rgba(0,0,0,.4); font-size: 21px; }
+  .item { padding: 12px 16px; border-radius: 10px; color: var(--muted); }
+  .item.ok { color: #157f3d; font-weight: 650; }
+  .sep { height: 1px; background: var(--line); margin: 8px 6px; }
+  .toast { width: 520px; background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 22px 26px; box-shadow: 0 40px 90px -40px rgba(0,0,0,.4); font-size: 21px; display: flex; gap: 18px; }
+  .toast svg { width: 34px; height: 34px; flex: none; margin-top: 2px; }
+  .toast b { display: block; font-size: 22px; margin-bottom: 6px; }
+  .toast span { color: var(--muted); line-height: 1.4; }
+  .duo { display: flex; gap: 48px; align-items: center; }
+</style>
+<template id=mark><svg viewBox="0 0 64 64"><path fill="#0b0b0b" fill-rule="evenodd" d="M16 10h32a10 10 0 0 1 10 10v18a10 10 0 0 1-10 10H27l-11 9v-9a10 10 0 0 1-10-10V20a10 10 0 0 1 10-10ZM24.5 19h5.5v20h-5.5ZM34 19h5.5v20H34Z"/></svg></template>
+<script>
+const S = new URLSearchParams(location.search).get("s");
+const brand = () => `<div class=brand>${document.getElementById("mark").innerHTML} NoScam</div>`;
+const slides = {
+  1: `<div><h1>Holds the payment a scam message asked for.</h1><p>You arrived from WhatsApp seconds ago and you've never paid this account. Nothing leaves until someone you trust says yes.</p></div>
+      <div class=desk><img src="desktop-held.png"></div>`,
+  2: `<div><h1>Gift cards, OTPs, remote control: <span class=soft>refused.</span></h1><p>The things no bank, police officer or support desk ever needs — stopped outright, with one sentence explaining why.</p></div>
+      <div class=desk><img src="desktop-giftcards.png"></div>`,
+  3: `<div><h1>Someone you trust says yes.</h1><p>A held payment waits for approval on another phone. The caller can rush you and clone a voice. They can't press that button.</p></div>
+      <div class=phones><div class=phone><img src="phone-approvals.png"></div></div>`,
+  4: `<div><h1>Checks a link before you tap it.</h1><p>Lookalike sites, fake refunds and UPI requests that send money out instead of in — explained in plain words.</p></div>
+      <div class=phones><div class=phone><img src="phone-link.png"></div></div>`,
+  5: `<div><h1>Quiet like an antivirus. <span class=soft>Loud when it matters.</span></h1><p>It sits in the tray, tells you plainly whether you're protected, and warns the moment a remote-control app starts.</p></div>
+      <div class=duo>
+        <div class=tray>
+          <div class=menu><div class="item ok">✓ Protected</div><div class=sep></div><div class=item>Open Guardian Dashboard</div><div class=item>View Audit Log</div><div class=item>✓ Start at login</div><div class=sep></div><div class=item>Quit NoScam</div></div>
+          <div class=toast>${document.getElementById("mark").innerHTML}<div><b>AnyDesk is running</b><span>Someone with its code can control this PC. If a caller asked you to open it, hang up and close it.</span></div></div>
+        </div>
+        <div class=phone style="width:340px;height:735px"><img src="phone-history.png"></div>
+      </div>`,
+};
+addEventListener("DOMContentLoaded", () => { document.body.innerHTML = `<div class=slide>${brand()}${slides[S]}</div>`; });
+</script>
