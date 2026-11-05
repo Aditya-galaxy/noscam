@@ -131,6 +131,8 @@ location sharing. Expect a 3+ / Everyone rating.
   > open. Open source.
 - *What's new in this version:* First Microsoft Store release.
 - *Product features* (one per line):
+  > Runs in the background and shows whether you are protected
+  > Warns when remote-control apps like AnyDesk start running
   > Holds payments, codes and passwords reached from a message
   > Refuses remote-control installs like AnyDesk during a scam call
   > Second-device approval the caller cannot press
@@ -144,7 +146,9 @@ location sharing. Expect a 3+ / Everyone rating.
 
 **Submission options → Notes for certification:**
 
-> NoScam is a local anti-fraud service with a tray icon. On first launch it opens
+> NoScam is a local anti-fraud service with a tray icon. In the background it
+> reads running process names (only names) to warn when a remote-control tool
+> such as AnyDesk starts, and shows protection status in the tray. On first launch it opens
 > its setup page at http://127.0.0.1:8787/app/ in the default browser; after that
 > it runs from the tray and starts at login (startup task, user-controllable in
 > Settings > Apps > Startup). To see it stop a scam, quit it from the tray, then
