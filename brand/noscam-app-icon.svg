@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- App icon: the mark in off-white on a near-black rounded square, so it reads on light
+       and dark taskbars, docks, launchers and browser toolbars alike. -->
+  <rect width="64" height="64" rx="14" fill="#0b0b0b"/>
+  <g transform="translate(32 32) scale(0.74) translate(-32 -33.5)">
+    <path fill="#fbfbfa" fill-rule="evenodd" d="M16 10h32a10 10 0 0 1 10 10v18a10 10 0 0 1-10 10H27l-11 9v-9a10 10 0 0 1-10-10V20a10 10 0 0 1 10-10ZM24.5 19h5.5v20h-5.5ZM34 19h5.5v20H34Z"/>
+  </g>
+</svg>

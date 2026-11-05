@@ -38,7 +38,7 @@ code { font: 13px var(--mono); }
 .top { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 82%, transparent); backdrop-filter: saturate(1.4) blur(14px); }
 .top-row { display: flex; justify-content: space-between; align-items: center; height: 72px; }
 .logo { display: flex; align-items: center; gap: 10px; font: 600 18px/1 var(--sans); letter-spacing: -0.03em; text-decoration: none; }
-.logo img { border-radius: 6px; }
+.logo .mark { display: block; }
 nav { display: flex; align-items: center; gap: 28px; font-size: 14px; }
 nav a { text-decoration: none; color: var(--muted); transition: color .2s; }
 nav a:hover { color: var(--text); }

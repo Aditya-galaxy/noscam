@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="brand/noscam-mark-white-1024.png">
+    <img src="brand/noscam-mark-black-1024.png" width="88" alt="NoScam logo: a speech bubble with a pause sign">
+  </picture>
+</p>
+
 # NoScam
 
 [**Download and read about it**](https://aditya-galaxy.github.io/noscam/) ·
