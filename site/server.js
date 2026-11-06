@@ -20,7 +20,9 @@ const db = process.env.DRY_RUN ? null : new Firestore({ databaseId: DATABASE, ig
 // Download buttons point here, not at GitHub directly, so the page never hard-codes a version and
 // we can count installs per platform. Release asset names are stable across versions.
 const DOWNLOADS = {
-  windows: `${RELEASES}/NoScam-Setup.exe`,
+  // Microsoft Store: signed by Microsoft (no SmartScreen warning) and updated by the Store.
+  windows: "https://apps.microsoft.com/detail/9P3FWLQHJD1Z?mode=direct",
+  "windows-exe": `${RELEASES}/NoScam-Setup.exe`,
   "mac-arm": `${RELEASES}/NoScam-macOS-arm64.dmg`,
   "mac-intel": `${RELEASES}/NoScam-macOS-x86_64.dmg`,
   android: `${RELEASES}/NoScam-Android-debug.apk`,
