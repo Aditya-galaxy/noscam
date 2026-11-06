@@ -114,21 +114,10 @@ location sharing. Expect a 3+ / Everyone rating.
 - *Product name:* NoScam
 - *Short description:*
   > Stops scam messages from authorising payments, one-time codes and remote-control installs.
-- *Description:*
-  > Scams that take the most money don't hack anything. A message says your
-  > account is compromised, a caller says you are under "digital arrest", someone
-  > needs you to install a support app — and you do it yourself.
-  >
-  > NoScam notices how you got to a page. If you arrived from a link in WhatsApp,
-  > Telegram, email or SMS, it holds the things that cannot be undone — a payment
-  > to someone new, a one-time code, a password, a gift card, crypto, a UPI
-  > request, a remote-control download — and explains in one sentence why. A
-  > held payment can wait for someone you trust to approve it on their phone.
-  > You can always continue; it is a pause, not a lock.
-  >
-  > Runs on this PC. There is no account, and nothing about your money leaves it.
-  > Add the free NoScam extension for Edge or Chrome so it can see the pages you
-  > open. Open source.
+- *Description:* paste **`docs/store/microsoft/description.txt`** as-is (plain text, ~3,000
+  characters). It must open by saying what the app is — certification rejected an earlier,
+  story-first version under 10.1.4.3 ("description that's clear and is about your app").
+  Don't paste from this Markdown file: the `>` quote marks would come with it.
 - *What's new in this version:* First Microsoft Store release.
 - *Product features* (one per line):
   > Runs in the background and shows whether you are protected
