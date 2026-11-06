@@ -13,6 +13,8 @@
 
 🥈 **2nd place, TLN Cybersecurity Challenge 2026.**
 
+<a href="https://apps.microsoft.com/detail/9P3FWLQHJD1Z?mode=direct"><img src="https://get.microsoft.com/images/en-us%20dark.svg" width="200" alt="Get NoScam from the Microsoft Store"></a>
+
 **The scams that take the most money never break any encryption. They get the
 person to authorise it.**
 
@@ -111,7 +113,18 @@ claim. A real number needs real households, and nobody has used this in one yet.
 it costs, what leaves your computer (nothing about your money) and how to
 install it — written for a person, not a developer.
 
-## Run it
+## Install
+
+| Platform | Get it |
+|---|---|
+| **Windows 10 / 11** | [**Microsoft Store**](https://apps.microsoft.com/detail/9P3FWLQHJD1Z?mode=direct) — signed by Microsoft and kept up to date by the Store. The [`.exe` installer](https://github.com/Aditya-galaxy/noscam/releases/latest/download/NoScam-Setup.exe) is the fallback. |
+| **macOS** | [Apple silicon](https://github.com/Aditya-galaxy/noscam/releases/latest/download/NoScam-macOS-arm64.dmg) · [Intel](https://github.com/Aditya-galaxy/noscam/releases/latest/download/NoScam-macOS-x86_64.dmg) — not yet notarised: right-click the app and choose **Open** the first time. |
+| **Android** | [Test build (APK)](https://github.com/Aditya-galaxy/noscam/releases/latest/download/NoScam-Android-debug.apk) — Google Play listing in progress. |
+| **Browser extension** | Chrome / Edge / Firefox store listings in review; until then, load the [Chrome](https://github.com/Aditya-galaxy/noscam/releases/latest/download/noscam-extension-chrome.zip) or [Firefox](https://github.com/Aditya-galaxy/noscam/releases/latest/download/noscam-extension-firefox.zip) zip unpacked. |
+
+Or start at **[noscam.kronagent.dev](https://noscam.kronagent.dev/)**, which picks the right download for your device.
+
+## Run it from source
 
 ```bash
 python3 -m pip install -r requirements.txt
@@ -119,7 +132,7 @@ python3 noscam.py
 ```
 
 On macOS you can double-click **`Start NoScam.command`** instead; it installs
-what is missing the first time. Installed copies — the desktop apps on the
+what is missing the first time. Installed copies — the Microsoft Store app, the desktop apps on the
 [releases page](https://github.com/Aditya-galaxy/noscam/releases/latest), or
 `pipx install git+https://github.com/Aditya-galaxy/noscam` — start without the demo and keep the household in your
 user app-data folder; add `--demo` to see the demo there. What it would take to ship this past people who own a
