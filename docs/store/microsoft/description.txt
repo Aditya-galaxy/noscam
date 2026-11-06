@@ -1,0 +1,23 @@
+NoScam is a free scam-protection app for Windows. It runs quietly in the background and stops the payments, one-time codes, passwords and remote-control installs that a scam message or scam call talks you into — even on a fake website created minutes ago.
+
+Most money lost to scams is not stolen by hacking. A message says your bank account will be frozen, a caller claims you are under "digital arrest", or a "support agent" asks you to install AnyDesk — and you make the payment or read out the code yourself. Antivirus software looks for known bad files and websites. NoScam watches for the moment you are about to do something you cannot undo, and checks how you got there.
+
+WHAT NOSCAM DOES
+• Holds a payment to someone you have never paid when you reached the page from a link in WhatsApp, Telegram, email or SMS, and explains why in one plain sentence.
+• Refuses things no real bank, police officer or support desk ever needs: one-time codes and passwords typed on a page a message sent you to, gift-card and crypto purchases pushed by a message, and remote-control apps such as AnyDesk and TeamViewer.
+• Warns you when a remote-control app starts running on your PC.
+• Lets someone you trust approve a held payment from their own phone, so the person pressuring you cannot.
+• Checks links before you open them: lookalike website addresses, fake "refund" UPI requests that actually send money out, and AutoPay mandates that repeat every day.
+• Shows its status in the system tray: "Protected", or exactly what needs fixing.
+• Keeps a tamper-evident history of everything it stopped, held or allowed.
+
+HOW IT WORKS
+NoScam runs on your PC and starts when you sign in. Its free browser extension for Microsoft Edge and Google Chrome tells it how each page was opened — typed by you, from a bookmark, or from a link in a message. When you are about to pay, enter a code or download a remote-control tool, NoScam decides using clear, fixed rules (not an AI model) and shows a short explanation you can check against your own memory. You can always choose to continue; it is a pause, not a lock.
+
+PRIVACY
+All decisions are made on your PC. There is no account and nothing to sign up for. Your payments, payees and history stay on your computer. NoScam is open source, so anyone can check what it does.
+
+WHAT YOU NEED
+Windows 10 (1809) or Windows 11, and Microsoft Edge or Google Chrome with the free NoScam extension (the app shows you how to add it). NoScam does not remove viruses and is not a replacement for antivirus software.
+
+Website and privacy policy: https://noscam.kronagent.dev
